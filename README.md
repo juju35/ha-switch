@@ -52,3 +52,7 @@ url: http://192.168.1.117
 | `url` | – | Opened when tapping the device |
 
 Tapping any chip, tile or port opens its more-info dialog.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
