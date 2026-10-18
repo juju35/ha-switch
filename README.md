@@ -16,9 +16,7 @@ Custom Lovelace card for Home Assistant displaying a managed network switch (SNM
 
 ### HACS (recommended)
 
-[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=juju35&repository=ha-switch&category=plugin)
-
-Or manually in HACS:
+Use the **Open in HACS** badge above, or manually:
 
 1. Open **HACS** in Home Assistant.
 2. Click the **⋮** menu (top right) → **Custom repositories**.
