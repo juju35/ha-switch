@@ -8,9 +8,34 @@ Custom Lovelace card for Home Assistant displaying a managed network switch (SNM
 
 ## Installation
 
-**HACS**: add `https://github.com/juju35/ha-switch` as a custom repository (type *Dashboard*), install, reload.
+### HACS (recommended)
 
-**Manual**: copy `dist/ha-switch-card.js` to `/config/www/` and add the resource `/local/ha-switch-card.js` (JavaScript module).
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=juju35&repository=ha-switch&category=plugin)
+
+Or manually in HACS:
+
+1. Open **HACS** in Home Assistant.
+2. Click the **⋮** menu (top right) → **Custom repositories**.
+3. Add `https://github.com/juju35/ha-switch` with type **Dashboard**, then click **Add**.
+4. Search for **ha-switch** in HACS, open it and click **Download**.
+5. Reload your browser (clear the cache if the card doesn't show up).
+
+HACS registers the dashboard resource automatically.
+
+### Manual
+
+1. Download `ha-switch-card.js` from the [latest release](https://github.com/juju35/ha-switch/releases/latest) (or `dist/` in this repository).
+2. Copy it to `/config/www/ha-switch-card.js`.
+3. Go to **Settings → Dashboards → ⋮ → Resources** and add `/local/ha-switch-card.js` as a **JavaScript module**, or in YAML mode:
+
+   ```yaml
+   lovelace:
+     resources:
+       - url: /local/ha-switch-card.js
+         type: module
+   ```
+
+4. Reload your browser.
 
 ## Configuration
 
