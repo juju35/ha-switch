@@ -1,23 +1,28 @@
-name: HACS Validation
+name: Validate
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
-  hacs:
-    name: HACS
+  validate:
+    name: Check the card
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: HACS validation
-        uses: hacs/action@main
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          category: plugin
+          node-version: 22
+
+      - name: Check hacs.json and the card file
+        run: |
+          file=$(node -e "process.stdout.write(require('./hacs.json').filename)")
+          test -f "dist/$file" || { echo "dist/$file not found"; exit 1; }
+          node --check "dist/$file"
+          echo "dist/$file is valid JavaScript"
