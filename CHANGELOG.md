@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+### Development
+- The built card is no longer committed in `dist/`: CI builds it on every push, and the release workflow builds it and attaches it to the release, which is where HACS downloads it from. Nothing changes for users.
+
 ## 1.1.0
 
 ### Changes
