@@ -20,10 +20,10 @@ jobs:
         with:
           node-version: 22
 
+      - name: Build and check the card
+        run: npm run check
+
       - name: Check hacs.json points to the built file
         run: |
           file=$(node -p "require('./hacs.json').filename")
-          test -f "dist/$file" || { echo "dist/$file not found"; exit 1; }
-
-      - name: Check dist is up to date and valid
-        run: npm run check
+          test -f "dist/$file" || { echo "dist/$file not built"; exit 1; }
