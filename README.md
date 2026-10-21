@@ -10,20 +10,36 @@ Custom Lovelace card for Home Assistant displaying a managed network switch (SNM
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=juju35&repository=ha-switch&category=plugin)
 
-| Netgear GS308T (embedded) | Generic front panel |
+| Generic front panel | Netgear GS308T (embedded photo) |
 |---|---|
-| ![GS308T](docs/screenshot-gs308t.png) | ![Generic](docs/screenshot-generic.png) |
+| ![card](https://raw.githubusercontent.com/juju35/ha-switch/main/screenshots/card.png) | ![GS308T](https://raw.githubusercontent.com/juju35/ha-switch/main/screenshots/card-gs308t.png) |
+
+## Features
+
+- Header with a status-colored icon, name, subtitle and power toggle
+- Chips for connectivity, global status and uptime (SNMP timeticks or seconds)
+- Live state of every port on the device; tap a port to open its entity
+- Incoming / outgoing traffic, auto-scaled (B → TB)
+- Built-in devices: a drawn generic front panel (1–52 ports) that follows the light or dark theme, or a Netgear GS308T (S350) photo with calibrated ports
+- Custom image support with an adjustable port overlay
+- Status colors from the Home Assistant theme
+- Visual editor in the dashboard UI (no YAML needed), English and French
+- Single file, no dependencies (no mushroom, card-mod or button-card)
+
+## Prerequisites
+
+Entities describing your switch, usually from the [SNMP integration](https://www.home-assistant.io/integrations/snmp/): one sensor per port with its operational status (`1` = up), plus optional status, connectivity, uptime and traffic sensors and a power switch. Every entity is optional; the card shows what is configured.
 
 ## Installation
 
-### HACS (recommended)
+### Via HACS (recommended)
 
 Use the **Open in HACS** badge above, or manually:
 
 1. Open **HACS** in Home Assistant.
 2. Click the **⋮** menu (top right) → **Custom repositories**.
 3. Add `https://github.com/juju35/ha-switch` with type **Dashboard**, then click **Add**.
-4. Search for **ha-switch** in HACS, open it and click **Download**.
+4. Search for **Network Switch Card** in HACS, open it and click **Download**.
 5. Reload your browser (clear the cache if the card doesn't show up).
 
 HACS registers the dashboard resource automatically.
@@ -45,6 +61,12 @@ HACS registers the dashboard resource automatically.
 
 ## Configuration
 
+### Visual editor
+
+Edit a dashboard, click **Add card** and search for **Network switch card**. Every option below is available in the editor, grouped by entities, ports and appearance.
+
+### Full options
+
 ```yaml
 type: custom:ha-switch-card
 name: Switch Séjour Netgear S350 (GS308T)
@@ -61,6 +83,8 @@ port_pattern: sensor.switch_sejour_port_{n}_status
 model: gs308t
 url: http://192.168.1.117
 ```
+
+### Options reference
 
 | Option | Default | Description |
 |---|---|---|
@@ -84,6 +108,45 @@ url: http://192.168.1.117
 
 Tapping any chip, tile or port opens its more-info dialog.
 
+## Screenshots
+
+| Light | Dark (French) |
+|---|---|
+| ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
+| ![card GS308T](screenshots/card-gs308t.png) | |
+
+## How it works
+
+Ports are read from `port_pattern` with `{n}` replaced by the port number, and drawn green when their state equals `port_on_state`, red otherwise, grey when the entity is missing. The header icon and the power LED follow `status_entity` (`online_state` green, `idle_state` orange, anything else red), or `connectivity_entity` when no status is set.
+
+The generic front panel is an SVG drawn by the card: up to 12 ports on one row, beyond that odd ports on top and even ports below, like real switches. Its body is derived from the theme's card and text colors, so it stays readable in light and dark mode.
+
+## Development
+
+```bash
+npm install
+npm run build        # stamps the version of package.json into dist/ha-switch-card.js
+npm run check        # verifies dist/ is up to date (run in CI)
+npm run screenshots  # renders the card with mock entities into screenshots/
+```
+
+### Releasing
+
+1. Bump `version` in `package.json` and run `npm run build`
+2. Add a `## <version>` section at the top of [CHANGELOG.md](CHANGELOG.md)
+3. Push to `main`: the **Release** workflow creates the tag and the GitHub release with the changelog section as notes, and attaches `ha-switch-card.js`
+
+## Translations
+
+The card auto-detects the language from your Home Assistant settings. Currently supported:
+
+| Language | Code |
+|---|---|
+| English | `en` |
+| Français | `fr` |
+
+Contributions for additional languages are welcome!
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE)

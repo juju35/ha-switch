@@ -1,5 +1,6 @@
 {
-  "name": "ha-switch",
-  "filename": "ha-switch-card.js",
-  "render_readme": true
+  "name": "Network Switch Card",
+  "render_readme": true,
+  "content_in_root": false,
+  "filename": "ha-switch-card.js"
 }

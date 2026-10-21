@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate:
-    name: Check the card
+  build:
+    name: Build & check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,9 +20,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check hacs.json and the card file
+      - name: Check hacs.json points to the built file
         run: |
-          file=$(node -e "process.stdout.write(require('./hacs.json').filename)")
+          file=$(node -p "require('./hacs.json').filename")
           test -f "dist/$file" || { echo "dist/$file not found"; exit 1; }
-          node --check "dist/$file"
-          echo "dist/$file is valid JavaScript"
+
+      - name: Check dist is up to date and valid
+        run: npm run check
