@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node scripts/build.mjs --check && node --check dist/ha-switch-card.js",
+    "check": "node scripts/build.mjs && node --check dist/ha-switch-card.js",
     "screenshots": "node scripts/screenshots.mjs"
   },
   "license": "MIT",
