@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3
+
+### Changes
+- HACS now asks for Home Assistant 2024.8 or later, the version that brought the sections view the card supports; the README says so under **Prerequisites**.
+- README: **Add to HACS** button in the installation steps, as in the other ha-* repositories.
+
 ## 1.1.2
 
 ### Maintenance
