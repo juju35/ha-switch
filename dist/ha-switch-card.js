@@ -3,7 +3,7 @@
  * Displays a managed network switch (SNMP): status, uptime, port states, traffic.
  * Pure JavaScript, no dependencies (no mushroom / card-mod / button-card required).
  */
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 const I18N = {
   fr: {
@@ -44,6 +44,7 @@ const I18N = {
       port_bottom: 'Hauteur des ports (% depuis le bas)',
     },
     units: { timeticks: 'Centièmes de seconde (SNMP)', seconds: 'Secondes' },
+    day: 'j',
     generic: 'Générique',
   },
   en: {
@@ -84,6 +85,7 @@ const I18N = {
       port_bottom: 'Port height (% from bottom)',
     },
     units: { timeticks: 'Hundredths of a second (SNMP)', seconds: 'Seconds' },
+    day: 'd',
     generic: 'Generic',
   },
 };
@@ -103,13 +105,17 @@ const DEFAULTS = {
   port_bottom: 39,
 };
 
+// Theme colors with the Home Assistant defaults as fallbacks, like the other juju35 cards.
 const COLORS = {
-  green: '#4caf50',
-  orange: '#ff9800',
-  red: '#f44336',
-  blue: '#2196f3',
-  grey: '#9e9e9e',
+  green: 'var(--success-color, #43a047)',
+  orange: 'var(--warning-color, #ffa600)',
+  red: 'var(--error-color, #db4437)',
+  blue: 'var(--info-color, #039be5)',
+  grey: 'var(--disabled-text-color, #9e9e9e)',
 };
+
+// Darker shade of a port color, for its contacts and LEDs.
+const shade = (color) => `color-mix(in srgb, ${color} 45%, #000)`;
 
 const getLang = (hass) => {
   const l = (hass?.locale?.language || hass?.language || navigator.language || 'en').slice(0, 2);
@@ -130,21 +136,21 @@ const formatBytes = (v) => {
   return `${v.toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
 };
 
-const formatUptime = (raw, unit) => {
+const formatUptime = (raw, unit, day = 'd') => {
   const n = parseInt(raw, 10);
   if (!Number.isFinite(n)) return '—';
   const t = unit === 'seconds' ? n : Math.floor(n / 100);
   const d = Math.floor(t / 86400);
   const h = Math.floor((t % 86400) / 3600);
   const m = Math.floor((t % 3600) / 60);
-  return `${d > 0 ? `${d}j ` : ''}${h}h ${m}min`;
+  return `${d > 0 ? `${d}${day} ` : ''}${h}h ${m}min`;
 };
 
 const portSvg = (color, dark) => `
   <svg viewBox="0 0 27 25" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="4" width="25" height="20" rx="2" fill="${color}"/>
-    <rect x="10" y="1" width="6" height="5" rx="1" fill="${color}"/>
-    ${[4, 8, 12, 16].map((x) => `<rect x="${x}" y="8" width="2" height="10" rx="0.5" fill="${dark}" opacity="0.6"/>`).join('')}
+    <rect x="1" y="4" width="25" height="20" rx="2" style="fill:${color}"/>
+    <rect x="10" y="1" width="6" height="5" rx="1" style="fill:${color}"/>
+    ${[4, 8, 12, 16].map((x) => `<rect x="${x}" y="8" width="2" height="10" rx="0.5" style="fill:${dark}" opacity="0.6"/>`).join('')}
   </svg>`;
 
 /**
@@ -176,7 +182,7 @@ const chassisSvg = (ports, powerColor, portLabel) => {
   const rowY = rows === 1 ? [30] : [26, 86];
 
   const vents = Array.from({ length: 6 }, (_, i) =>
-    `<rect x="${22 + i * 14}" y="${H / 2 - 22}" width="6" height="44" rx="3" fill="#1b1d20"/>`
+    `<rect x="${22 + i * 14}" y="${H / 2 - 22}" width="6" height="44" rx="3" class="hs-vent"/>`
   ).join('');
 
   const slots = ports
@@ -186,18 +192,18 @@ const chassisSvg = (ports, powerColor, portLabel) => {
       const x = X0 + colIdx * PW;
       const y = rowY[row];
       const contacts = [0, 1, 2, 3, 4, 5, 6, 7]
-        .map((k) => `<rect x="${x + 8 + k * 3.6}" y="${y + 9}" width="1.8" height="7" fill="${dark}" opacity="0.75"/>`)
+        .map((k) => `<rect x="${x + 8 + k * 3.6}" y="${y + 9}" width="1.8" height="7" style="fill:${dark}" opacity="0.75"/>`)
         .join('');
       const labelY = rows === 2 && row === 0 ? y - 6 : y + 52;
       return `
         <g class="port" data-entity="${esc(id)}">
           <title>${esc(portLabel)} ${n}</title>
-          <rect x="${x - 2}" y="${y - 2}" width="44" height="40" rx="4" fill="#15171a"/>
-          <path d="M${x} ${y + 6} h10 v-6 h20 v6 h10 v28 h-40 z" fill="${col}"/>
+          <rect x="${x - 2}" y="${y - 2}" width="44" height="40" rx="4" class="hs-slot"/>
+          <path d="M${x} ${y + 6} h10 v-6 h20 v6 h10 v28 h-40 z" style="fill:${col}"/>
           ${contacts}
-          <rect x="${x + 4}" y="${y + 26}" width="8" height="4" rx="1" fill="${dark}" opacity="0.8"/>
-          <rect x="${x + 28}" y="${y + 26}" width="8" height="4" rx="1" fill="${dark}" opacity="0.8"/>
-          <text x="${x + 20}" y="${labelY}" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#9aa0a6">${n}</text>
+          <rect x="${x + 4}" y="${y + 26}" width="8" height="4" rx="1" style="fill:${dark}" opacity="0.8"/>
+          <rect x="${x + 28}" y="${y + 26}" width="8" height="4" rx="1" style="fill:${dark}" opacity="0.8"/>
+          <text x="${x + 20}" y="${labelY}" text-anchor="middle" font-size="11" class="hs-label">${n}</text>
         </g>`;
     })
     .join('');
@@ -206,17 +212,17 @@ const chassisSvg = (ports, powerColor, portLabel) => {
     <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">
       <defs>
         <linearGradient id="hs-body" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#3d4146"/>
-          <stop offset="1" stop-color="#26292d"/>
+          <stop offset="0" style="stop-color:var(--hs-body-top)"/>
+          <stop offset="1" style="stop-color:var(--hs-body-bottom)"/>
         </linearGradient>
       </defs>
-      <rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="10" fill="url(#hs-body)" stroke="#16181b" stroke-width="2"/>
+      <rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="10" fill="url(#hs-body)" class="hs-edge" stroke-width="2"/>
       <rect x="6" y="5" width="${W - 12}" height="2" rx="1" fill="#ffffff" opacity="0.08"/>
       ${vents}
-      <circle cx="132" cy="${H / 2 - 6}" r="5" fill="${powerColor}"/>
-      <circle cx="132" cy="${H / 2 - 6}" r="9" fill="${powerColor}" opacity="0.25"/>
-      <text x="132" y="${H / 2 + 18}" text-anchor="middle" font-size="10" font-family="sans-serif" fill="#9aa0a6">PWR</text>
-      <rect x="156" y="14" width="1.5" height="${H - 28}" fill="#16181b"/>
+      <circle cx="132" cy="${H / 2 - 6}" r="5" style="fill:${powerColor}"/>
+      <circle cx="132" cy="${H / 2 - 6}" r="9" style="fill:${powerColor}" opacity="0.25"/>
+      <text x="132" y="${H / 2 + 18}" text-anchor="middle" font-size="10" class="hs-label">PWR</text>
+      <rect x="156" y="14" width="1.5" height="${H - 28}" class="hs-divider"/>
       ${slots}
     </svg>`;
 };
@@ -346,7 +352,7 @@ class HaSwitchCard extends HTMLElement {
       chips.push(this._chip(c.status_entity, icon, statusColor, st?.state ?? '—'));
     }
     if (c.uptime_entity) {
-      chips.push(this._chip(c.uptime_entity, 'mdi:clock-outline', COLORS.grey, formatUptime(this._state(c.uptime_entity)?.state, c.uptime_unit)));
+      chips.push(this._chip(c.uptime_entity, 'mdi:clock-outline', COLORS.grey, formatUptime(this._state(c.uptime_entity)?.state, c.uptime_unit, t.day)));
     }
 
     /* ports */
@@ -356,7 +362,8 @@ class HaSwitchCard extends HTMLElement {
       const id = this._portEntity(n);
       const ps = this._state(id);
       const up = ps?.state === String(c.port_on_state);
-      portInfo.push({ n, id, colors: !ps ? [COLORS.grey, '#424242'] : up ? ['#22c55e', '#006400'] : ['#ef4444', '#8b0000'] });
+      const color = !ps ? COLORS.grey : up ? COLORS.green : COLORS.red;
+      portInfo.push({ n, id, colors: [color, shade(color)] });
     }
     const urlAttr = c.url ? `data-url="${esc(c.url)}"` : '';
     let device;
@@ -389,7 +396,7 @@ class HaSwitchCard extends HTMLElement {
       id
         ? `<div class="tile" data-entity="${esc(id)}">
              <div class="ic" style="--c:${color}"><ha-icon icon="${icon}"></ha-icon></div>
-             <div><div class="primary">${label}</div><div class="secondary">${esc(this._formatTraffic(this._state(id)))}</div></div>
+             <div class="txt"><div class="k">${label}</div><div class="v">${esc(this._formatTraffic(this._state(id)))}</div></div>
            </div>`
         : '';
     const traffic = tile(c.traffic_in_entity, 'mdi:arrow-down-bold', COLORS.green, t.in) + tile(c.traffic_out_entity, 'mdi:arrow-up-bold', COLORS.blue, t.out);
@@ -402,8 +409,8 @@ class HaSwitchCard extends HTMLElement {
             <ha-icon icon="${esc(c.icon)}"></ha-icon>
           </div>
           <div class="titles">
-            <div class="primary">${esc(c.name)}</div>
-            ${c.subtitle ? `<div class="secondary">${esc(c.subtitle)}</div>` : ''}
+            <div class="name">${esc(c.name)}</div>
+            ${c.subtitle ? `<div class="sub">${esc(c.subtitle)}</div>` : ''}
           </div>
           ${sw ? `<ha-switch></ha-switch>` : ''}
         </div>
@@ -424,59 +431,71 @@ class HaSwitchCard extends HTMLElement {
   }
 
   _chip(entity, icon, color, content) {
-    return `<div class="chip" data-entity="${esc(entity)}">
-      <ha-icon icon="${icon}" style="color:${color}"></ha-icon><span>${esc(content)}</span>
+    return `<div class="chip" style="--c:${color}" data-entity="${esc(entity)}">
+      <ha-icon icon="${icon}"></ha-icon><span>${esc(content)}</span>
     </div>`;
   }
 
   static get styles() {
     return `
-      ha-card { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+      :host {
+        --hs-body-top: color-mix(in srgb, var(--primary-text-color, #212121) 24%, var(--card-background-color, #fff));
+        --hs-body-bottom: color-mix(in srgb, var(--primary-text-color, #212121) 14%, var(--card-background-color, #fff));
+        --hs-dark: color-mix(in srgb, var(--primary-text-color, #212121) 45%, var(--card-background-color, #fff));
+      }
+      ha-card { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
       [data-entity], [data-url] { cursor: pointer; }
-      .primary { font-weight: 600; font-size: 14px; color: var(--primary-text-color); }
-      .secondary { font-size: 12px; color: var(--secondary-text-color); }
       .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
       .ic {
         --size: 36px;
         width: var(--size); height: var(--size); border-radius: 50%;
         display: flex; align-items: center; justify-content: center; flex: none;
-        color: var(--c); background: color-mix(in srgb, var(--c) 20%, transparent);
+        color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
       }
-      .ic.big { --size: 56px; --mdc-icon-size: 36px; }
+      .ic.big { --size: 40px; --mdc-icon-size: 24px; }
       .titles { min-width: 0; }
-      .titles > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .name { font-size: 18px; font-weight: 500; line-height: 1.25; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sub { font-size: 13px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       ha-switch {
-        --switch-checked-color: #43a047;
+        --switch-checked-color: var(--success-color, #43a047);
         --switch-checked-button-color: #fff;
-        --switch-checked-track-color: #43a047;
+        --switch-checked-track-color: var(--success-color, #43a047);
         --switch-unchecked-button-color: #fff;
-        --switch-unchecked-track-color: #e53935;
-        --ha-switch-checked-background-color: #43a047;
+        --switch-unchecked-track-color: var(--error-color, #db4437);
+        --ha-switch-checked-background-color: var(--success-color, #43a047);
         --ha-switch-checked-thumb-background-color: #fff;
-        --ha-switch-checked-border-color: #43a047;
-        --ha-switch-background-color: #e53935;
+        --ha-switch-checked-border-color: var(--success-color, #43a047);
+        --ha-switch-background-color: var(--error-color, #db4437);
         --ha-switch-thumb-background-color: #fff;
-        --ha-switch-border-color: #e53935;
+        --ha-switch-border-color: var(--error-color, #db4437);
       }
-      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .chip {
-        display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
-        border-radius: 16px; font-size: 12px; font-weight: 500;
-        border: 1px solid var(--divider-color); color: var(--primary-text-color);
-        --mdc-icon-size: 16px;
+        display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
+        border-radius: 12px; font-size: 12px; font-weight: 500;
+        background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c);
+        --mdc-icon-size: 14px;
       }
-      .device { position: relative; width: 100%; border-radius: 8px; overflow: hidden; }
+      .device { position: relative; width: 100%; border-radius: 10px; overflow: hidden; }
       .device img { width: 100%; display: block; }
       .device svg { width: 100%; height: auto; display: block; }
       .device svg .port:hover { filter: brightness(1.15); }
+      .hs-edge { stroke: var(--hs-dark); }
+      .hs-vent, .hs-slot, .hs-divider { fill: var(--hs-dark); }
+      .hs-label { fill: var(--secondary-text-color, #727272); font-family: inherit; }
       .ports.abs { position: absolute; left: 0; width: 100%; height: 27px; }
       .ports.abs .port { position: absolute; top: 50%; transform: translate(-50%, -50%); }
       .ports.model { position: absolute; inset: 0; }
       .ports.model .port { position: absolute; transform: translate(-50%, -50%); }
       .port { width: 27px; line-height: 0; }
       .port svg { width: 100%; height: auto; }
-      .traffic { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-      .tile { display: flex; align-items: center; gap: 10px; }
+      .traffic { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+      .tile { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; min-width: 0;
+              background: var(--secondary-background-color, rgba(127,127,127,.08)); }
+      .tile .ic { --mdc-icon-size: 20px; }
+      .tile .txt { min-width: 0; }
+      .tile .k { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tile .v { font-size: 15px; font-weight: 500; color: var(--primary-text-color); }
     `;
   }
 }
