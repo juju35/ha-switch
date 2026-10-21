@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+### Maintenance
+- Merged branches are deleted automatically (new `cleanup-branches` workflow). Nothing changes for users.
+
 ## 1.1.1
 
 ### Development
