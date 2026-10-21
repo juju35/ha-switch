@@ -2,5 +2,6 @@
   "name": "Network Switch Card",
   "render_readme": true,
   "content_in_root": false,
-  "filename": "ha-switch-card.js"
+  "filename": "ha-switch-card.js",
+  "homeassistant": "2024.8.0"
 }
