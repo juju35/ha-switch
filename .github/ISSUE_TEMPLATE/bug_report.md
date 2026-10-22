@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug with the ha-switch card
+about: Report a bug with the Network Switch Card
 title: "[Bug] "
 labels: bug
 assignees: ""
