@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+### Changes
+- More compact layout with the same information, like the other ha-* cards: 12 px card padding, 36 px header icon, 16 px name and 12 px subtitle, 11 px pills, tighter tiles and sections.
+- Lower traffic tiles; the switch front keeps its size.
+
 ## 1.1.3
 
 ### Changes
