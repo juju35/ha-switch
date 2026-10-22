@@ -443,19 +443,19 @@ class HaSwitchCard extends HTMLElement {
         --hs-body-bottom: color-mix(in srgb, var(--primary-text-color, #212121) 14%, var(--card-background-color, #fff));
         --hs-dark: color-mix(in srgb, var(--primary-text-color, #212121) 45%, var(--card-background-color, #fff));
       }
-      ha-card { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+      ha-card { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
       [data-entity], [data-url] { cursor: pointer; }
-      .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+      .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
       .ic {
-        --size: 36px;
+        --size: 32px;
         width: var(--size); height: var(--size); border-radius: 50%;
         display: flex; align-items: center; justify-content: center; flex: none;
         color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
       }
-      .ic.big { --size: 40px; --mdc-icon-size: 24px; }
+      .ic.big { --size: 36px; --mdc-icon-size: 22px; }
       .titles { min-width: 0; }
-      .name { font-size: 18px; font-weight: 500; line-height: 1.25; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sub { font-size: 13px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .name { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       ha-switch {
         --switch-checked-color: var(--success-color, #43a047);
         --switch-checked-button-color: #fff;
@@ -471,11 +471,12 @@ class HaSwitchCard extends HTMLElement {
       }
       .chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .chip {
-        display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
-        border-radius: 12px; font-size: 12px; font-weight: 500;
+        display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px 1px 5px;
+        border-radius: 12px; font-size: 11px; font-weight: 500;
         background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c);
         --mdc-icon-size: 14px;
       }
+      .chip ha-icon { --mdc-icon-size: 13px; }
       .device { position: relative; width: 100%; border-radius: 10px; overflow: hidden; }
       .device img { width: 100%; display: block; }
       .device svg { width: 100%; height: auto; display: block; }
@@ -489,13 +490,13 @@ class HaSwitchCard extends HTMLElement {
       .ports.model .port { position: absolute; transform: translate(-50%, -50%); }
       .port { width: 27px; line-height: 0; }
       .port svg { width: 100%; height: auto; }
-      .traffic { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
-      .tile { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; min-width: 0;
+      .traffic { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
+      .tile { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; min-width: 0;
               background: var(--secondary-background-color, rgba(127,127,127,.08)); }
       .tile .ic { --mdc-icon-size: 20px; }
       .tile .txt { min-width: 0; }
-      .tile .k { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .tile .v { font-size: 15px; font-weight: 500; color: var(--primary-text-color); }
+      .tile .k { font-size: 11px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tile .v { font-size: 14px; font-weight: 500; color: var(--primary-text-color); }
     `;
   }
 }
