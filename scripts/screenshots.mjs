@@ -14,6 +14,7 @@ const THEMES = {
     "--card-background-color": "#ffffff",
     "--primary-text-color": "#212121",
     "--secondary-text-color": "#727272",
+    "--disabled-text-color": "#bdbdbd",
     "--divider-color": "rgba(0,0,0,.12)",
   },
   dark: {
@@ -22,6 +23,7 @@ const THEMES = {
     "--card-background-color": "#1c1c1c",
     "--primary-text-color": "#e1e1e1",
     "--secondary-text-color": "#9b9b9b",
+    "--disabled-text-color": "#6f6f6f",
     "--divider-color": "rgba(225,225,225,.12)",
   },
 };

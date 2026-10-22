@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+### Fixes
+- The uptime pill is readable in dark mode: it uses the theme's secondary text color instead of the disabled one, which was too dim on a dark card.
+
 ## 1.2.0
 
 ### Changes

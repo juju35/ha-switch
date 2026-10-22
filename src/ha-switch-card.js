@@ -112,6 +112,7 @@ const COLORS = {
   red: 'var(--error-color, #db4437)',
   blue: 'var(--info-color, #039be5)',
   grey: 'var(--disabled-text-color, #9e9e9e)',
+  neutral: 'var(--secondary-text-color, #727272)',
 };
 
 // Darker shade of a port color, for its contacts and LEDs.
@@ -352,7 +353,7 @@ class HaSwitchCard extends HTMLElement {
       chips.push(this._chip(c.status_entity, icon, statusColor, st?.state ?? '—'));
     }
     if (c.uptime_entity) {
-      chips.push(this._chip(c.uptime_entity, 'mdi:clock-outline', COLORS.grey, formatUptime(this._state(c.uptime_entity)?.state, c.uptime_unit, t.day)));
+      chips.push(this._chip(c.uptime_entity, 'mdi:clock-outline', COLORS.neutral, formatUptime(this._state(c.uptime_entity)?.state, c.uptime_unit, t.day)));
     }
 
     /* ports */
