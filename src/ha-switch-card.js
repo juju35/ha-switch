@@ -600,7 +600,9 @@ class HaSwitchCardEditor extends HTMLElement {
       this._form.addEventListener('value-changed', (ev) => {
         ev.stopPropagation();
         const config = { ...ev.detail.value };
-        Object.keys(config).forEach((k) => (config[k] === '' || config[k] === undefined) && delete config[k]);
+        Object.keys(config).forEach((k) => {
+          if (config[k] === '' || config[k] === undefined) delete config[k];
+        });
         this._config = config;
         this.dispatchEvent(new CustomEvent('config-changed', { detail: { config }, bubbles: true, composed: true }));
       });
