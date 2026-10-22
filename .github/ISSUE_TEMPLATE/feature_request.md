@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for the ha-switch card
+about: Suggest an idea for the Network Switch Card
 title: "[Feature] "
 labels: enhancement
 assignees: ""
