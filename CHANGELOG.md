@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+### Maintenance
+- Tooling only, no functional change: Biome linting, pre-commit and a Lint CI (duplication checks). Card source modernized (optional chaining, template literals), identical behavior.
+
 ## 1.2.1
 
 ### Fixes
