@@ -46,6 +46,7 @@ const I18N = {
     units: { timeticks: 'Centièmes de seconde (SNMP)', seconds: 'Secondes' },
     day: 'j',
     generic: 'Générique',
+    open_admin: 'Ouvrir la page d’administration',
   },
   en: {
     card_name: 'Network switch card',
@@ -87,6 +88,7 @@ const I18N = {
     units: { timeticks: 'Hundredths of a second (SNMP)', seconds: 'Seconds' },
     day: 'd',
     generic: 'Generic',
+    open_admin: 'Open the admin page',
   },
 };
 
@@ -234,6 +236,8 @@ function portCount(c) {
 }
 
 // Config mistakes the editor prevents but YAML allows.
+// Each message is logged once per page: HA calls setConfig on the preview at every keystroke in the editor.
+const warned = new Set();
 function configWarnings(c) {
   const out = [];
   const count = portCount(c);
@@ -244,6 +248,12 @@ function configWarnings(c) {
   return out;
 }
 
+// Identifies a focusable element across renders (the header icon and a chip can share an entity).
+const focusKey = (el) =>
+  el?.getAttribute?.('tabindex') != null
+    ? [el.getAttribute('class'), el.getAttribute('data-entity'), el.getAttribute('data-url')].join('|')
+    : '';
+
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
 /* ------------------------------------------------------------------ */
@@ -253,10 +263,10 @@ class HaSwitchCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._key = '';
     this.shadowRoot.addEventListener('click', (ev) => this._onClick(ev));
-    // Ports, tiles and chips are focusable: Enter or Space opens them like a click.
+    // Ports, tiles, chips, the header icon and the admin link are focusable: Enter or Space opens them like a click.
     this.shadowRoot.addEventListener('keydown', (ev) => {
       if (ev.key !== 'Enter' && ev.key !== ' ') return;
-      if (!ev.composedPath().some((el) => el.getAttribute?.('role') === 'button')) return;
+      if (!ev.composedPath().some((el) => ['button', 'link'].includes(el.getAttribute?.('role')))) return;
       ev.preventDefault();
       this._onClick(ev);
     });
@@ -275,7 +285,11 @@ class HaSwitchCard extends HTMLElement {
     if (!config) throw new Error('Invalid configuration');
     this._config = { ...DEFAULTS, ...config };
     // Configs the editor would not produce: warn, but still draw the card as before.
-    for (const msg of configWarnings(this._config)) console.warn(`ha-switch-card: ${msg}`);
+    for (const msg of configWarnings(this._config)) {
+      if (warned.has(msg)) continue;
+      warned.add(msg);
+      console.warn(`ha-switch-card: ${msg}`);
+    }
     this._key = '';
     this._render();
   }
@@ -396,7 +410,7 @@ class HaSwitchCard extends HTMLElement {
       const color = !ps ? COLORS.grey : up ? COLORS.green : COLORS.red;
       portInfo.push({ n, id, colors: [color, shade(color)] });
     }
-    const urlAttr = c.url ? `data-url="${esc(c.url)}"` : '';
+    const urlAttr = c.url ? `data-url="${esc(c.url)}" role="link" tabindex="0" aria-label="${esc(t.open_admin)}"` : '';
     let device;
     if (c.image) {
       const ports = portInfo.map(
@@ -432,11 +446,12 @@ class HaSwitchCard extends HTMLElement {
         : '';
     const traffic = tile(c.traffic_in_entity, 'mdi:arrow-down-bold', COLORS.green, t.in) + tile(c.traffic_out_entity, 'mdi:arrow-up-bold', COLORS.blue, t.out);
 
+    const focused = focusKey(this.shadowRoot.activeElement);
     this.shadowRoot.innerHTML = `
       <style>${HaSwitchCard.styles}</style>
       <ha-card>
         <div class="header">
-          <div class="ic big" style="--c:${statusColor}" ${headerEntity ? `data-entity="${esc(headerEntity)}"` : ''}>
+          <div class="ic big" style="--c:${statusColor}" ${headerEntity ? `data-entity="${esc(headerEntity)}" role="button" tabindex="0" aria-label="${esc(this._state(headerEntity)?.attributes?.friendly_name || headerEntity)}"` : ''}>
             <ha-icon icon="${esc(c.icon)}"></ha-icon>
           </div>
           <div class="titles">
@@ -449,6 +464,12 @@ class HaSwitchCard extends HTMLElement {
         ${device}
         ${traffic ? `<div class="traffic">${traffic}</div>` : ''}
       </ha-card>`;
+
+    // innerHTML replaced the focused element: focus its counterpart so keyboard navigation keeps its place.
+    if (focused) {
+      const again = [...this.shadowRoot.querySelectorAll('[tabindex]')].find((el) => focusKey(el) === focused);
+      again?.focus({ preventScroll: true });
+    }
 
     const toggle = this.shadowRoot.querySelector('ha-switch');
     if (toggle && sw) {

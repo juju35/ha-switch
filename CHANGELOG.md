@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+
+### Fixes
+- Configuration warnings are logged once instead of again on every keystroke in the visual editor.
+- Keyboard focus stays on the focused port, tile or chip when the card updates.
+- The header icon and the device picture (with `url`) can be reached and opened from the keyboard.
+
+### Maintenance
+- Screenshot script renders each capture in a fresh page; duplication checks no longer scan the tests. Nothing changes for users.
+
 ## 1.3.0
 
 ### Changes
