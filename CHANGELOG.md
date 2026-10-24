@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.0
+
+### Changes
+- Configuration checks: a `port_pattern` without `{n}`, `ports` above 52 or a `model` drawing fewer ports than `ports` now log a warning in the browser console; the card still renders as before.
+- Keyboard access: ports, traffic tiles and chips can be focused and opened with Enter / Space, like a click.
+- README example in English, with `mdi:switch` and `http://switch.local`; `online_state` / `idle_state` are explained as values of `status_entity` (their defaults `En ligne` / `Inactif` are unchanged).
+
+### Fixes
+- The visual editor no longer redraws its form on every Home Assistant state change while editing.
+- An invalid `ports` value no longer stops port updates: the watched ports are the drawn ones (8 by default).
+
+### Maintenance
+- CI hardening: actions pinned by commit SHA, read-only workflow token, monthly Dependabot updates, duplication findings annotated in pull requests.
+- Unit tests (`npm test`) run in CI; `package-lock.json` version synced. Nothing changes for users.
+
 ## 1.2.2
 
 ### Maintenance
