@@ -76,7 +76,7 @@ Edit a dashboard, click **Add card** and search for **Network switch card**. Eve
 type: custom:ha-switch-card
 name: Living room switch Netgear S350 (GS308T)
 subtitle: 8 monitored ports
-icon: phu:netgear-switch
+icon: mdi:switch
 switch_entity: switch.living_room_switch
 status_entity: sensor.living_room_switch_global_status
 connectivity_entity: binary_sensor.living_room_switch
@@ -86,7 +86,7 @@ traffic_out_entity: sensor.living_room_switch_port_1_out
 ports: 8
 port_pattern: sensor.living_room_switch_port_{n}_status
 model: gs308t
-url: http://192.168.1.117
+url: http://switch.local
 ```
 
 ### Options reference
