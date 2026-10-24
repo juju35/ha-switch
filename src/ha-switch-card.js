@@ -46,6 +46,7 @@ const I18N = {
     units: { timeticks: 'Centièmes de seconde (SNMP)', seconds: 'Secondes' },
     day: 'j',
     generic: 'Générique',
+    open_admin: 'Ouvrir la page d’administration',
   },
   en: {
     card_name: 'Network switch card',
@@ -87,6 +88,7 @@ const I18N = {
     units: { timeticks: 'Hundredths of a second (SNMP)', seconds: 'Seconds' },
     day: 'd',
     generic: 'Generic',
+    open_admin: 'Open the admin page',
   },
 };
 
@@ -197,7 +199,7 @@ const chassisSvg = (ports, powerColor, portLabel) => {
         .join('');
       const labelY = rows === 2 && row === 0 ? y - 6 : y + 52;
       return `
-        <g class="port" data-entity="${esc(id)}">
+        <g class="port" data-entity="${esc(id)}" role="button" tabindex="0">
           <title>${esc(portLabel)} ${n}</title>
           <rect x="${x - 2}" y="${y - 2}" width="44" height="40" rx="4" class="hs-slot"/>
           <path d="M${x} ${y + 6} h10 v-6 h20 v6 h10 v28 h-40 z" style="fill:${col}"/>
@@ -228,6 +230,30 @@ const chassisSvg = (ports, powerColor, portLabel) => {
     </svg>`;
 };
 
+// Port count shared by the drawing and the watched entities: 8 when `ports` is not a number.
+function portCount(c) {
+  return Math.max(1, Number(c.ports) || 8);
+}
+
+// Config mistakes the editor prevents but YAML allows.
+// Each message is logged once per page: HA calls setConfig on the preview at every keystroke in the editor.
+const warned = new Set();
+function configWarnings(c) {
+  const out = [];
+  const count = portCount(c);
+  if (count > 1 && !String(c.port_pattern || '').includes('{n}')) out.push('port_pattern has no {n}: every port shows the same entity');
+  if (count > 52) out.push(`ports is ${count}, above the 52 the editor allows`);
+  const m = !c.image && MODELS[c.model];
+  if (m && count > m.positions.length) out.push(`model ${c.model} draws ${m.positions.length} ports; ports ${m.positions.length + 1} to ${count} are not shown`);
+  return out;
+}
+
+// Identifies a focusable element across renders (the header icon and a chip can share an entity).
+const focusKey = (el) =>
+  el?.getAttribute?.('tabindex') != null
+    ? [el.getAttribute('class'), el.getAttribute('data-entity'), el.getAttribute('data-url')].join('|')
+    : '';
+
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
 /* ------------------------------------------------------------------ */
@@ -237,6 +263,13 @@ class HaSwitchCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._key = '';
     this.shadowRoot.addEventListener('click', (ev) => this._onClick(ev));
+    // Ports, tiles, chips, the header icon and the admin link are focusable: Enter or Space opens them like a click.
+    this.shadowRoot.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      if (!ev.composedPath().some((el) => ['button', 'link'].includes(el.getAttribute?.('role')))) return;
+      ev.preventDefault();
+      this._onClick(ev);
+    });
   }
 
   static getConfigElement() {
@@ -251,6 +284,12 @@ class HaSwitchCard extends HTMLElement {
   setConfig(config) {
     if (!config) throw new Error('Invalid configuration');
     this._config = { ...DEFAULTS, ...config };
+    // Configs the editor would not produce: warn, but still draw the card as before.
+    for (const msg of configWarnings(this._config)) {
+      if (warned.has(msg)) continue;
+      warned.add(msg);
+      console.warn(`ha-switch-card: ${msg}`);
+    }
     this._key = '';
     this._render();
   }
@@ -277,10 +316,15 @@ class HaSwitchCard extends HTMLElement {
     return this._config.port_pattern.replace('{n}', n);
   }
 
+  // Ports drawn and watched: the same count, 8 when `ports` is not a number.
+  _portCount() {
+    return portCount(this._config);
+  }
+
   _watched() {
     const c = this._config;
     const ids = [c.switch_entity, c.status_entity, c.connectivity_entity, c.uptime_entity, c.traffic_in_entity, c.traffic_out_entity];
-    for (let n = 1; n <= Number(c.ports); n++) ids.push(this._portEntity(n));
+    for (let n = 1; n <= this._portCount(); n++) ids.push(this._portEntity(n));
     return ids.filter(Boolean);
   }
 
@@ -357,7 +401,7 @@ class HaSwitchCard extends HTMLElement {
     }
 
     /* ports */
-    const count = Math.max(1, Number(c.ports) || 8);
+    const count = this._portCount();
     const portInfo = [];
     for (let n = 1; n <= count; n++) {
       const id = this._portEntity(n);
@@ -366,12 +410,12 @@ class HaSwitchCard extends HTMLElement {
       const color = !ps ? COLORS.grey : up ? COLORS.green : COLORS.red;
       portInfo.push({ n, id, colors: [color, shade(color)] });
     }
-    const urlAttr = c.url ? `data-url="${esc(c.url)}"` : '';
+    const urlAttr = c.url ? `data-url="${esc(c.url)}" role="link" tabindex="0" aria-label="${esc(t.open_admin)}"` : '';
     let device;
     if (c.image) {
       const ports = portInfo.map(
         ({ n, id, colors }) =>
-          `<div class="port" style="left:${Number(c.port_start) + (n - 1) * Number(c.port_step)}%" data-entity="${esc(id)}" title="${t.port} ${n}">${portSvg(...colors)}</div>`
+          `<div class="port" style="left:${Number(c.port_start) + (n - 1) * Number(c.port_step)}%" data-entity="${esc(id)}" role="button" tabindex="0" title="${t.port} ${n}">${portSvg(...colors)}</div>`
       );
       device = `<div class="device img" ${urlAttr}>
            <img src="${esc(c.image)}" alt="">
@@ -382,7 +426,7 @@ class HaSwitchCard extends HTMLElement {
       const ports = portInfo.map(({ n, id, colors }) => {
         const left = m.positions[n - 1];
         if (left === undefined) return '';
-        return `<div class="port" style="left:${left}%;top:${m.top}%;width:${m.size}%" data-entity="${esc(id)}" title="${t.port} ${n}">${portSvg(...colors)}</div>`;
+        return `<div class="port" style="left:${left}%;top:${m.top}%;width:${m.size}%" data-entity="${esc(id)}" role="button" tabindex="0" title="${t.port} ${n}">${portSvg(...colors)}</div>`;
       });
       device = `<div class="device img" ${urlAttr}>
            <img src="${m.image}" alt="${esc(m.label)}">
@@ -395,18 +439,19 @@ class HaSwitchCard extends HTMLElement {
     /* traffic */
     const tile = (id, icon, color, label) =>
       id
-        ? `<div class="tile" data-entity="${esc(id)}">
+        ? `<div class="tile" data-entity="${esc(id)}" role="button" tabindex="0">
              <div class="ic" style="--c:${color}"><ha-icon icon="${icon}"></ha-icon></div>
              <div class="txt"><div class="k">${label}</div><div class="v">${esc(this._formatTraffic(this._state(id)))}</div></div>
            </div>`
         : '';
     const traffic = tile(c.traffic_in_entity, 'mdi:arrow-down-bold', COLORS.green, t.in) + tile(c.traffic_out_entity, 'mdi:arrow-up-bold', COLORS.blue, t.out);
 
+    const focused = focusKey(this.shadowRoot.activeElement);
     this.shadowRoot.innerHTML = `
       <style>${HaSwitchCard.styles}</style>
       <ha-card>
         <div class="header">
-          <div class="ic big" style="--c:${statusColor}" ${headerEntity ? `data-entity="${esc(headerEntity)}"` : ''}>
+          <div class="ic big" style="--c:${statusColor}" ${headerEntity ? `data-entity="${esc(headerEntity)}" role="button" tabindex="0" aria-label="${esc(this._state(headerEntity)?.attributes?.friendly_name || headerEntity)}"` : ''}>
             <ha-icon icon="${esc(c.icon)}"></ha-icon>
           </div>
           <div class="titles">
@@ -420,6 +465,12 @@ class HaSwitchCard extends HTMLElement {
         ${traffic ? `<div class="traffic">${traffic}</div>` : ''}
       </ha-card>`;
 
+    // innerHTML replaced the focused element: focus its counterpart so keyboard navigation keeps its place.
+    if (focused) {
+      const again = [...this.shadowRoot.querySelectorAll('[tabindex]')].find((el) => focusKey(el) === focused);
+      again?.focus({ preventScroll: true });
+    }
+
     const toggle = this.shadowRoot.querySelector('ha-switch');
     if (toggle && sw) {
       toggle.checked = sw.state === 'on';
@@ -432,7 +483,7 @@ class HaSwitchCard extends HTMLElement {
   }
 
   _chip(entity, icon, color, content) {
-    return `<div class="chip" style="--c:${color}" data-entity="${esc(entity)}">
+    return `<div class="chip" style="--c:${color}" data-entity="${esc(entity)}" role="button" tabindex="0">
       <ha-icon icon="${icon}"></ha-icon><span>${esc(content)}</span>
     </div>`;
   }

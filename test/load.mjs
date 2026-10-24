@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
-export function loadCard(file, names) {
+// stubs: sandbox globals to override (e.g. a console that records calls).
+export function loadCard(file, names, stubs = {}) {
   const src = readFileSync(fileURLToPath(new URL(`../src/${file}`, import.meta.url)), "utf8");
   const registry = new Map();
   const sandbox = {
@@ -28,6 +29,7 @@ export function loadCard(file, names) {
     setTimeout: () => 0,
     clearTimeout() {},
   };
+  Object.assign(sandbox, stubs);
   sandbox.window = sandbox;
   // The current global Date, so node:test mock timers apply to the card too.
   Object.defineProperty(sandbox, "Date", { get: () => globalThis.Date });
