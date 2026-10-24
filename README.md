@@ -74,17 +74,17 @@ Edit a dashboard, click **Add card** and search for **Network switch card**. Eve
 
 ```yaml
 type: custom:ha-switch-card
-name: Switch Séjour Netgear S350 (GS308T)
-subtitle: 8 Ports Supervisés
+name: Living room switch Netgear S350 (GS308T)
+subtitle: 8 monitored ports
 icon: phu:netgear-switch
-switch_entity: switch.switch_sejour
-status_entity: sensor.switch_sejour_statut_global
-connectivity_entity: binary_sensor.switch_sejour
-uptime_entity: sensor.switch_sejour_uptime
-traffic_in_entity: sensor.switch_sejour_port_1_in
-traffic_out_entity: sensor.switch_sejour_port_1_out
+switch_entity: switch.living_room_switch
+status_entity: sensor.living_room_switch_global_status
+connectivity_entity: binary_sensor.living_room_switch
+uptime_entity: sensor.living_room_switch_uptime
+traffic_in_entity: sensor.living_room_switch_port_1_in
+traffic_out_entity: sensor.living_room_switch_port_1_out
 ports: 8
-port_pattern: sensor.switch_sejour_port_{n}_status
+port_pattern: sensor.living_room_switch_port_{n}_status
 model: gs308t
 url: http://192.168.1.117
 ```
@@ -105,7 +105,7 @@ url: http://192.168.1.117
 | `ports` | `8` | Number of ports |
 | `port_pattern` | `sensor.switch_port_{n}_status` | Port entity pattern, `{n}` = port number |
 | `port_on_state` | `1` | State meaning "port up" |
-| `online_state` / `idle_state` | `En ligne` / `Inactif` | Status values → green / orange (anything else → red) |
+| `online_state` / `idle_state` | `En ligne` / `Inactif` | Values of `status_entity` shown green / orange (anything else → red). Set them to the states your status sensor reports, e.g. `online` / `idle` |
 | `model` | `generic` | Embedded device image: `generic` (drawn front panel, any port count, up to 52) or `gs308t` (Netgear GS308T / S350 photo, calibrated ports) |
 | `image` | – | Custom device image URL, overrides `model` |
 | `port_start` / `port_step` / `port_bottom` | `21` / `10` / `39` | Port overlay position on a custom `image` (%) |
