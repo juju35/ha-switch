@@ -47,6 +47,23 @@ test("configWarnings flags configs the editor would not produce", () => {
   assert.deepEqual([...configWarnings({ ...base, ports: 10, model: "gs308t", image: "/local/x.png" })], []);
 });
 
+test("a config warning is logged once, not on every setConfig from the editor", () => {
+  const warns = [];
+  const console = { info() {}, log() {}, error() {}, warn: (msg) => warns.push(msg) };
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"], { console });
+  const card = new HaSwitchCard();
+  // Typing "sensor.sw_port_{n}_status" in the editor: HA calls setConfig on the preview at each keystroke.
+  const target = "sensor.sw_port_{n}_status";
+  for (let i = 1; i <= target.length; i++) card.setConfig({ port_pattern: target.slice(0, i) });
+  assert.equal(warns.length, 1);
+  assert.match(warns[0], /port_pattern has no \{n\}/);
+  // Another card with the same mistake does not repeat it either; a different mistake is reported.
+  new HaSwitchCard().setConfig({ port_pattern: "sensor.p" });
+  new HaSwitchCard().setConfig({ port_pattern: "sensor.p{n}", ports: 60 });
+  assert.equal(warns.length, 2);
+  assert.match(warns[1], /ports is 60/);
+});
+
 test("ports, tiles and chips are keyboard buttons", () => {
   const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
   const card = new HaSwitchCard();
@@ -56,4 +73,14 @@ test("ports, tiles and chips are keyboard buttons", () => {
   assert.match(html, /<g class="port" data-entity="sensor\.p1" role="button" tabindex="0">/);
   assert.match(html, /class="tile" data-entity="sensor\.in" role="button" tabindex="0"/);
   assert.match(html, /class="chip"[^>]*data-entity="sensor\.s" role="button" tabindex="0"/);
+});
+
+test("the header icon and the admin link are reachable from the keyboard", () => {
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 2, port_pattern: "sensor.p{n}", status_entity: "sensor.s", url: "http://switch.local" });
+  card.hass = { language: "en", states: { "sensor.s": { state: "x", attributes: { friendly_name: "Status" } } } };
+  const html = card.shadowRoot.innerHTML;
+  assert.match(html, /class="ic big"[^>]*data-entity="sensor\.s" role="button" tabindex="0" aria-label="Status"/);
+  assert.match(html, /class="device" data-url="http:\/\/switch\.local" role="link" tabindex="0"/);
 });
