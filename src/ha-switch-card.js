@@ -512,7 +512,13 @@ class HaSwitchCardEditor extends HTMLElement {
   }
 
   set hass(hass) {
+    const prevLang = this._hass ? getLang(this._hass) : null;
     this._hass = hass;
+    // Only a language change needs new labels: otherwise hand the new hass to the form and keep it as is.
+    if (this._form && prevLang === getLang(hass)) {
+      this._form.hass = hass;
+      return;
+    }
     this._render();
   }
 
