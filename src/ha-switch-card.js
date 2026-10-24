@@ -197,7 +197,7 @@ const chassisSvg = (ports, powerColor, portLabel) => {
         .join('');
       const labelY = rows === 2 && row === 0 ? y - 6 : y + 52;
       return `
-        <g class="port" data-entity="${esc(id)}">
+        <g class="port" data-entity="${esc(id)}" role="button" tabindex="0">
           <title>${esc(portLabel)} ${n}</title>
           <rect x="${x - 2}" y="${y - 2}" width="44" height="40" rx="4" class="hs-slot"/>
           <path d="M${x} ${y + 6} h10 v-6 h20 v6 h10 v28 h-40 z" style="fill:${col}"/>
@@ -228,6 +228,22 @@ const chassisSvg = (ports, powerColor, portLabel) => {
     </svg>`;
 };
 
+// Port count shared by the drawing and the watched entities: 8 when `ports` is not a number.
+function portCount(c) {
+  return Math.max(1, Number(c.ports) || 8);
+}
+
+// Config mistakes the editor prevents but YAML allows.
+function configWarnings(c) {
+  const out = [];
+  const count = portCount(c);
+  if (count > 1 && !String(c.port_pattern || '').includes('{n}')) out.push('port_pattern has no {n}: every port shows the same entity');
+  if (count > 52) out.push(`ports is ${count}, above the 52 the editor allows`);
+  const m = !c.image && MODELS[c.model];
+  if (m && count > m.positions.length) out.push(`model ${c.model} draws ${m.positions.length} ports; ports ${m.positions.length + 1} to ${count} are not shown`);
+  return out;
+}
+
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
 /* ------------------------------------------------------------------ */
@@ -237,6 +253,13 @@ class HaSwitchCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._key = '';
     this.shadowRoot.addEventListener('click', (ev) => this._onClick(ev));
+    // Ports, tiles and chips are focusable: Enter or Space opens them like a click.
+    this.shadowRoot.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      if (!ev.composedPath().some((el) => el.getAttribute?.('role') === 'button')) return;
+      ev.preventDefault();
+      this._onClick(ev);
+    });
   }
 
   static getConfigElement() {
@@ -251,6 +274,8 @@ class HaSwitchCard extends HTMLElement {
   setConfig(config) {
     if (!config) throw new Error('Invalid configuration');
     this._config = { ...DEFAULTS, ...config };
+    // Configs the editor would not produce: warn, but still draw the card as before.
+    for (const msg of configWarnings(this._config)) console.warn(`ha-switch-card: ${msg}`);
     this._key = '';
     this._render();
   }
@@ -277,10 +302,15 @@ class HaSwitchCard extends HTMLElement {
     return this._config.port_pattern.replace('{n}', n);
   }
 
+  // Ports drawn and watched: the same count, 8 when `ports` is not a number.
+  _portCount() {
+    return portCount(this._config);
+  }
+
   _watched() {
     const c = this._config;
     const ids = [c.switch_entity, c.status_entity, c.connectivity_entity, c.uptime_entity, c.traffic_in_entity, c.traffic_out_entity];
-    for (let n = 1; n <= Number(c.ports); n++) ids.push(this._portEntity(n));
+    for (let n = 1; n <= this._portCount(); n++) ids.push(this._portEntity(n));
     return ids.filter(Boolean);
   }
 
@@ -357,7 +387,7 @@ class HaSwitchCard extends HTMLElement {
     }
 
     /* ports */
-    const count = Math.max(1, Number(c.ports) || 8);
+    const count = this._portCount();
     const portInfo = [];
     for (let n = 1; n <= count; n++) {
       const id = this._portEntity(n);
@@ -371,7 +401,7 @@ class HaSwitchCard extends HTMLElement {
     if (c.image) {
       const ports = portInfo.map(
         ({ n, id, colors }) =>
-          `<div class="port" style="left:${Number(c.port_start) + (n - 1) * Number(c.port_step)}%" data-entity="${esc(id)}" title="${t.port} ${n}">${portSvg(...colors)}</div>`
+          `<div class="port" style="left:${Number(c.port_start) + (n - 1) * Number(c.port_step)}%" data-entity="${esc(id)}" role="button" tabindex="0" title="${t.port} ${n}">${portSvg(...colors)}</div>`
       );
       device = `<div class="device img" ${urlAttr}>
            <img src="${esc(c.image)}" alt="">
@@ -382,7 +412,7 @@ class HaSwitchCard extends HTMLElement {
       const ports = portInfo.map(({ n, id, colors }) => {
         const left = m.positions[n - 1];
         if (left === undefined) return '';
-        return `<div class="port" style="left:${left}%;top:${m.top}%;width:${m.size}%" data-entity="${esc(id)}" title="${t.port} ${n}">${portSvg(...colors)}</div>`;
+        return `<div class="port" style="left:${left}%;top:${m.top}%;width:${m.size}%" data-entity="${esc(id)}" role="button" tabindex="0" title="${t.port} ${n}">${portSvg(...colors)}</div>`;
       });
       device = `<div class="device img" ${urlAttr}>
            <img src="${m.image}" alt="${esc(m.label)}">
@@ -395,7 +425,7 @@ class HaSwitchCard extends HTMLElement {
     /* traffic */
     const tile = (id, icon, color, label) =>
       id
-        ? `<div class="tile" data-entity="${esc(id)}">
+        ? `<div class="tile" data-entity="${esc(id)}" role="button" tabindex="0">
              <div class="ic" style="--c:${color}"><ha-icon icon="${icon}"></ha-icon></div>
              <div class="txt"><div class="k">${label}</div><div class="v">${esc(this._formatTraffic(this._state(id)))}</div></div>
            </div>`
@@ -432,7 +462,7 @@ class HaSwitchCard extends HTMLElement {
   }
 
   _chip(entity, icon, color, content) {
-    return `<div class="chip" style="--c:${color}" data-entity="${esc(entity)}">
+    return `<div class="chip" style="--c:${color}" data-entity="${esc(entity)}" role="button" tabindex="0">
       <ha-icon icon="${icon}"></ha-icon><span>${esc(content)}</span>
     </div>`;
   }
