@@ -84,3 +84,18 @@ test("the header icon and the admin link are reachable from the keyboard", () =>
   assert.match(html, /class="ic big"[^>]*data-entity="sensor\.s" role="button" tabindex="0" aria-label="Status"/);
   assert.match(html, /class="device" data-url="http:\/\/switch\.local" role="link" tabindex="0"/);
 });
+
+test("the GS308T front panel lines up its ports and their link LEDs", () => {
+  const { gs308tSvg, COLORS } = loadCard("ha-switch-card.js", ["gs308tSvg", "COLORS"]);
+  const ports = [1, 2, 3, 4, 5, 6].map((n) => ({ n, id: `switch.p${n}`, colors: [n === 4 ? COLORS.red : COLORS.green, "#000"] }));
+  const svg = gs308tSvg(ports, COLORS.green, "Port");
+  const num = (re) => [...svg.matchAll(re)].map((m) => Number(m[1]));
+  const portX = num(/<rect x="([\d.]+)" y="52" width="62" height="44"/g);
+  const ledX = num(/<rect x="([\d.]+)" y="42" width="12" height="6"/g);
+  assert.equal(portX.length, 8); // the 8 ports are always drawn, ports 7-8 inactive here
+  assert.deepEqual(ledX, portX.map((x) => x + 3)); // one LED at the top-left corner of each port
+  const steps = portX.slice(1).map((x, i) => x - portX[i]);
+  assert.deepEqual(steps, [70, 70, 70, 86, 70, 70, 70]); // even spacing, wider gap between the two groups
+  assert.equal((svg.match(/class="port"/g) || []).length, 6); // only configured ports are clickable
+  assert.match(svg, /<rect x="363" y="42" width="12" height="6" rx="1" style="fill:#2a2b2e"\/>/); // port 4 down: LED off
+});
