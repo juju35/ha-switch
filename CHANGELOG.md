@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+### Changes
+- The Netgear GS308T (`model: gs308t`) is drawn instead of shown as a photo: black front panel with its two groups of four ports in a silver bezel, the link LED at the top-left corner of each port (lit when the port is up, off when it is down), the power LED (status color) and the reset button. Ports and LEDs come from the same grid, so they stay aligned at any card width; the port numbers sit under each port. The bundle drops from about 54 KB to 31 KB.
+
+### Maintenance
+- Test for the alignment of the ports and LEDs (8 in all); GS308T screenshot regenerated.
+
 ## 1.3.1
 
 ### Fixes

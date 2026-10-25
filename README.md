@@ -10,7 +10,7 @@ Custom Lovelace card for Home Assistant displaying a managed network switch (SNM
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=juju35&repository=ha-switch&category=plugin)
 
-| Generic front panel | Netgear GS308T (embedded photo) |
+| Generic front panel | Netgear GS308T (drawn front panel) |
 |---|---|
 | ![card](https://raw.githubusercontent.com/juju35/ha-switch/main/screenshots/card.png) | ![GS308T](https://raw.githubusercontent.com/juju35/ha-switch/main/screenshots/card-gs308t.png) |
 
@@ -20,7 +20,7 @@ Custom Lovelace card for Home Assistant displaying a managed network switch (SNM
 - Chips for connectivity, global status and uptime (SNMP timeticks or seconds)
 - Live state of every port on the device; tap a port to open its entity
 - Incoming / outgoing traffic, auto-scaled (B → TB)
-- Built-in devices: a drawn generic front panel (1–52 ports) that follows the light or dark theme, or a Netgear GS308T (S350) photo with calibrated ports
+- Built-in devices: a drawn generic front panel (1–52 ports) that follows the light or dark theme, or a drawn Netgear GS308T (S350) front panel with its ports and link LEDs
 - Custom image support with an adjustable port overlay
 - Status colors from the Home Assistant theme
 - Visual editor in the dashboard UI (no YAML needed), English and French
@@ -106,7 +106,7 @@ url: http://switch.local
 | `port_pattern` | `sensor.switch_port_{n}_status` | Port entity pattern, `{n}` = port number |
 | `port_on_state` | `1` | State meaning "port up" |
 | `online_state` / `idle_state` | `En ligne` / `Inactif` | Values of `status_entity` shown green / orange (anything else → red). Set them to the states your status sensor reports, e.g. `online` / `idle` |
-| `model` | `generic` | Embedded device image: `generic` (drawn front panel, any port count, up to 52) or `gs308t` (Netgear GS308T / S350 photo, calibrated ports) |
+| `model` | `generic` | Embedded device image: `generic` (drawn front panel, any port count, up to 52) or `gs308t` (drawn Netgear GS308T / S350 front panel: 8 ports in two groups of four, link LED lit when the port is up) |
 | `image` | – | Custom device image URL, overrides `model` |
 | `port_start` / `port_step` / `port_bottom` | `21` / `10` / `39` | Port overlay position on a custom `image` (%) |
 | `url` | – | Opened when tapping the device |
