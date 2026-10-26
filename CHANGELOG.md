@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.1
+## 1.6.0 - 2026-10-26
 
 ### Fixes
 - The admin `url` opened when tapping the device is now restricted to `http(s)` links and relative paths; a `javascript:` or `data:` URL set in the YAML config is no longer opened.
