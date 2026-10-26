@@ -551,7 +551,7 @@ class HaSwitchCard extends HTMLElement {
         display: flex; align-items: center; justify-content: center; flex: none;
         color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
       }
-      .ic.big { --size: 36px; --mdc-icon-size: 22px; }
+      .ic.big { --size: 40px; --mdc-icon-size: 24px; background: color-mix(in srgb, var(--c) 16%, transparent); }
       .titles { min-width: 0; }
       .name { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

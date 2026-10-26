@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+- Header icon badge sized like the other cards: 40 px round badge, 24 px icon, 16 % tint of the status color.
+
 ## 1.4.0
 
 ### Changes
