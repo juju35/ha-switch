@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0 - 2026-10-26
+
+### Fixes
+- The admin `url` opened when tapping the device is now restricted to `http(s)` links and relative paths; a `javascript:` or `data:` URL set in the YAML config is no longer opened.
+
 ## 1.5.0
 ### Changes
 - Header icon badge sized like the other cards: 40 px round badge, 24 px icon, 16 % tint of the status color.
