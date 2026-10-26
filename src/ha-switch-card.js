@@ -145,6 +145,9 @@ const getLang = (hass) => {
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+// Admin URLs opened on a tap: only http(s) and same-origin relative paths, never javascript:/data: from a YAML config.
+const isSafeUrl = (url) => /^https?:\/\//i.test(url) || String(url).startsWith('/');
+
 const formatBytes = (v) => {
   if (!Number.isFinite(v)) return '—';
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
@@ -437,7 +440,7 @@ class HaSwitchCard extends HTMLElement {
     const target = path.find((el) => el.dataset && (el.dataset.entity || el.dataset.url));
     if (!target) return;
     if (target.dataset.entity) this._moreInfo(target.dataset.entity);
-    else if (target.dataset.url) window.open(target.dataset.url, '_blank', 'noopener');
+    else if (target.dataset.url && isSafeUrl(target.dataset.url)) window.open(target.dataset.url, '_blank', 'noopener');
   }
 
   /* --- render --- */
