@@ -5,6 +5,7 @@
 ### Changes
 - Header icon badge sized like the other cards: 40 px round badge, 24 px icon, 16 % tint of the status color.
 - `online_state` / `idle_state` no longer default to the French `En ligne` / `Inactif` only: unset, a status of `Online` or `En ligne` (`Idle` or `Inactif`) matches, case-insensitively, so existing configs keep working and English sensors need no setting. A set value is also compared case-insensitively. The status chip shows Online / Idle in the dashboard language (English or French) instead of the raw sensor value; other states are shown as Home Assistant formats them.
+- Header geometry: the chips start 8 px under the header (was 10 px); icon badge 12 px from the top and left edges, power toggle at the right edge as before.
 
 ## 1.4.0
 

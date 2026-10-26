@@ -564,7 +564,8 @@ class HaSwitchCard extends HTMLElement {
       }
       ha-card { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
       [data-entity], [data-url] { cursor: pointer; }
-      .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+      /* The body starts 8px under the header (the card gap is 10px between body blocks). */
+      .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; margin-bottom: -2px; }
       .ic {
         --size: 32px;
         width: var(--size); height: var(--size); border-radius: 50%;
