@@ -72,6 +72,7 @@ export async function render(shots, { icons = {}, hass = {}, extra = "" } = {}) 
   // A fresh page per shot: re-running the scripts in the same realm would redeclare their globals.
   for (const s of shots) {
     const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 1000, height: 2000 } });
+    page.on("pageerror", (err) => console.error(`${s.file}: ${err.message}`));
     await page.setContent(pageHtml(s.theme, s.width));
     await page.addScriptTag({ content: haElements(icons) + extra });
     await page.addScriptTag({ content: cardJs });
@@ -87,7 +88,13 @@ export async function render(shots, { icons = {}, hass = {}, extra = "" } = {}) 
     );
     if (s.after) await s.after(page);
     await page.waitForTimeout(400);
-    await page.locator(s.type).screenshot({ path: `${root}screenshots/${s.file}.png`, animations: "disabled" });
+    // The card plus the 16px page padding around it, on the theme background.
+    const box = await page.locator("#root").boundingBox();
+    await page.screenshot({
+      path: `${root}screenshots/${s.file}.png`,
+      clip: { x: 0, y: 0, width: s.width + 32, height: Math.ceil(box.height) + 32 },
+      animations: "disabled",
+    });
     console.log(`screenshots/${s.file}.png`);
     await page.close();
   }
@@ -122,30 +129,30 @@ customElements.define("ha-switch", class extends HTMLElement {
 const state = (entity_id, s, attributes = {}) => [entity_id, { entity_id, state: s, attributes }];
 const ports = (up) => Array.from({ length: 8 }, (_, i) => state(`sensor.switch_port_${i + 1}_status`, up.includes(i + 1) ? "1" : "2"));
 const states = Object.fromEntries([
-  state("switch.switch_bureau", "on"),
-  state("sensor.switch_bureau_status", "En ligne"),
-  state("binary_sensor.switch_bureau_connectivity", "on"),
-  state("sensor.switch_bureau_uptime", "109530000"),
-  state("sensor.switch_bureau_in", "184412876800", { unit_of_measurement: "B" }),
-  state("sensor.switch_bureau_out", "39728447488", { unit_of_measurement: "B" }),
+  state("switch.office_switch", "on"),
+  state("sensor.office_switch_status", "Online"),
+  state("binary_sensor.office_switch_connectivity", "on"),
+  state("sensor.office_switch_uptime", "109530000"),
+  state("sensor.office_switch_in", "184412876800", { unit_of_measurement: "B" }),
+  state("sensor.office_switch_out", "39728447488", { unit_of_measurement: "B" }),
   ...ports([1, 2, 3, 5, 6, 8]),
 ]);
 const config = {
   name: "Office switch",
   subtitle: "Netgear GS308T",
-  switch_entity: "switch.switch_bureau",
-  status_entity: "sensor.switch_bureau_status",
-  connectivity_entity: "binary_sensor.switch_bureau_connectivity",
-  uptime_entity: "sensor.switch_bureau_uptime",
-  traffic_in_entity: "sensor.switch_bureau_in",
-  traffic_out_entity: "sensor.switch_bureau_out",
+  switch_entity: "switch.office_switch",
+  status_entity: "sensor.office_switch_status",
+  connectivity_entity: "binary_sensor.office_switch_connectivity",
+  uptime_entity: "sensor.office_switch_uptime",
+  traffic_in_entity: "sensor.office_switch_in",
+  traffic_out_entity: "sensor.office_switch_out",
 };
 const hass = { states };
 
 await render(
   [
     { file: "card", type: "ha-switch-card", theme: "light", width: 460, config: { ...config, subtitle: "Generic" } },
-    { file: "card-dark", type: "ha-switch-card", theme: "dark", width: 460, config: { ...config, subtitle: "Générique" }, hass: { language: "fr", locale: { language: "fr" } } },
+    { file: "card-dark", type: "ha-switch-card", theme: "dark", width: 460, config: { ...config, subtitle: "Generic" } },
     { file: "card-gs308t", type: "ha-switch-card", theme: "light", width: 460, config: { ...config, model: "gs308t" } },
   ],
   { icons, hass, extra }

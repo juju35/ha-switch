@@ -47,6 +47,8 @@ const I18N = {
     day: 'j',
     generic: 'Générique',
     open_admin: 'Ouvrir la page d’administration',
+    online: 'En ligne',
+    idle: 'Inactif',
   },
   en: {
     card_name: 'Network switch card',
@@ -89,6 +91,8 @@ const I18N = {
     day: 'd',
     generic: 'Generic',
     open_admin: 'Open the admin page',
+    online: 'Online',
+    idle: 'Idle',
   },
 };
 
@@ -98,13 +102,26 @@ const DEFAULTS = {
   ports: 8,
   port_pattern: 'sensor.switch_port_{n}_status',
   port_on_state: '1',
-  online_state: 'En ligne',
-  idle_state: 'Inactif',
   uptime_unit: 'timeticks',
   model: 'generic',
   port_start: 21,
   port_step: 10,
   port_bottom: 39,
+};
+
+// Values of `status_entity` meaning online / idle when `online_state` / `idle_state` are not set: the English
+// and French ones (1.x defaulted to the French `En ligne` / `Inactif`, which still match). Compared case-insensitively.
+const STATUS_DEFAULTS = {
+  online_state: ['Online', 'En ligne'],
+  idle_state: ['Idle', 'Inactif'],
+};
+
+// Whether a status state is the configured `online_state` / `idle_state` (or one of its defaults).
+const statusIs = (state, config, key) => {
+  if (state == null) return false;
+  const norm = (v) => String(v).trim().toLowerCase();
+  const wanted = config[key] != null && config[key] !== '' ? [config[key]] : STATUS_DEFAULTS[key];
+  return wanted.some((v) => norm(v) === norm(state));
 };
 
 // Theme colors with the Home Assistant defaults as fallbacks, like the other juju35 cards.
@@ -387,8 +404,8 @@ class HaSwitchCard extends HTMLElement {
     const c = this._config;
     const st = this._state(c.status_entity);
     if (st) {
-      if (st.state === c.online_state) return COLORS.green;
-      if (st.state === c.idle_state) return COLORS.orange;
+      if (statusIs(st.state, c, 'online_state')) return COLORS.green;
+      if (statusIs(st.state, c, 'idle_state')) return COLORS.orange;
       return COLORS.red;
     }
     const con = this._state(c.connectivity_entity);
@@ -448,8 +465,11 @@ class HaSwitchCard extends HTMLElement {
     }
     const st = this._state(c.status_entity);
     if (c.status_entity) {
-      const icon = st?.state === c.online_state ? 'mdi:check-circle' : st?.state === c.idle_state ? 'mdi:minus-circle' : 'mdi:alert-circle';
-      chips.push(this._chip(c.status_entity, icon, statusColor, st?.state ?? '—'));
+      // Online / idle read in the card's language, whatever the sensor reports; any other state as Home Assistant shows it.
+      const online = statusIs(st?.state, c, 'online_state');
+      const idle = !online && statusIs(st?.state, c, 'idle_state');
+      const icon = online ? 'mdi:check-circle' : idle ? 'mdi:minus-circle' : 'mdi:alert-circle';
+      chips.push(this._chip(c.status_entity, icon, statusColor, online ? t.online : idle ? t.idle : this._formatState(st)));
     }
     if (c.uptime_entity) {
       chips.push(this._chip(c.uptime_entity, 'mdi:clock-outline', COLORS.neutral, formatUptime(this._state(c.uptime_entity)?.state, c.uptime_unit, t.day)));
@@ -544,14 +564,15 @@ class HaSwitchCard extends HTMLElement {
       }
       ha-card { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
       [data-entity], [data-url] { cursor: pointer; }
-      .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+      /* The body starts 8px under the header (the card gap is 10px between body blocks). */
+      .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; margin-bottom: -2px; }
       .ic {
         --size: 32px;
         width: var(--size); height: var(--size); border-radius: 50%;
         display: flex; align-items: center; justify-content: center; flex: none;
         color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
       }
-      .ic.big { --size: 36px; --mdc-icon-size: 22px; }
+      .ic.big { --size: 40px; --mdc-icon-size: 24px; background: color-mix(in srgb, var(--c) 16%, transparent); }
       .titles { min-width: 0; }
       .name { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -714,7 +735,10 @@ class HaSwitchCardEditor extends HTMLElement {
     this._form.data = this._config;
     this._form.schema = this._schema(t);
     this._form.computeLabel = (s) => t.fields[s.name] ?? s.name;
-    this._form.computeHelper = (s) => (DEFAULTS[s.name] !== undefined ? `${t.default} : ${DEFAULTS[s.name]}` : undefined);
+    this._form.computeHelper = (s) => {
+      const def = DEFAULTS[s.name] ?? STATUS_DEFAULTS[s.name]?.join(' / ');
+      return def !== undefined ? `${t.default} : ${def}` : undefined;
+    };
   }
 }
 

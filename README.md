@@ -105,7 +105,7 @@ url: http://switch.local
 | `ports` | `8` | Number of ports |
 | `port_pattern` | `sensor.switch_port_{n}_status` | Port entity pattern, `{n}` = port number |
 | `port_on_state` | `1` | State meaning "port up" |
-| `online_state` / `idle_state` | `En ligne` / `Inactif` | Values of `status_entity` shown green / orange (anything else → red). Set them to the states your status sensor reports, e.g. `online` / `idle` |
+| `online_state` / `idle_state` | `Online` or `En ligne` / `Idle` or `Inactif` | Values of `status_entity` shown green / orange (anything else → red), compared case-insensitively. Unset, both the English and French values match; set them to the state your status sensor reports otherwise, e.g. `up` / `standby`. The status chip then reads Online / Idle in the dashboard language (English or French) |
 | `model` | `generic` | Embedded device image: `generic` (drawn front panel, any port count, up to 52) or `gs308t` (drawn Netgear GS308T / S350 front panel: 8 ports in two groups of four, link LED lit when the port is up) |
 | `image` | – | Custom device image URL, overrides `model` |
 | `port_start` / `port_step` / `port_bottom` | `21` / `10` / `39` | Port overlay position on a custom `image` (%) |
@@ -115,7 +115,7 @@ Tapping any chip, tile or port opens its more-info dialog.
 
 ## Screenshots
 
-| Light | Dark (French) |
+| Light | Dark |
 |---|---|
 | ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
 | ![card GS308T](screenshots/card-gs308t.png) | |
