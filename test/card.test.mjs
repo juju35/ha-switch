@@ -99,3 +99,23 @@ test("the GS308T front panel lines up its ports and their link LEDs", () => {
   assert.equal((svg.match(/class="port"/g) || []).length, 6); // only configured ports are clickable
   assert.match(svg, /<rect x="363" y="42" width="12" height="6" rx="1" style="fill:#2a2b2e"\/>/); // port 4 down: LED off
 });
+
+test("online / idle states: English and French by default, case-insensitive, shown in the card's language", () => {
+  const { HaSwitchCard, COLORS } = loadCard("ha-switch-card.js", ["HaSwitchCard", "COLORS"]);
+  const show = (state, config = {}, language = "en") => {
+    const card = new HaSwitchCard();
+    card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", status_entity: "sensor.s", ...config });
+    card.hass = { language, states: { "sensor.s": { state, attributes: {} } } };
+    return { color: card._statusColor(), html: card.shadowRoot.innerHTML };
+  };
+  // Existing configs relying on the former French default keep working.
+  for (const s of ["En ligne", "en ligne", "Online", "ONLINE"]) assert.equal(show(s).color, COLORS.green, s);
+  for (const s of ["Inactif", "idle"]) assert.equal(show(s).color, COLORS.orange, s);
+  assert.equal(show("Offline").color, COLORS.red);
+  assert.match(show("En ligne").html, /mdi:check-circle[\s\S]*>Online</);
+  assert.match(show("online", {}, "fr").html, />En ligne</);
+  assert.match(show("idle", {}, "fr").html, />Inactif</);
+  // A configured value replaces the defaults.
+  assert.equal(show("up", { online_state: "UP" }).color, COLORS.green);
+  assert.equal(show("Online", { online_state: "up" }).color, COLORS.red);
+});

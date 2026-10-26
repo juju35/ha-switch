@@ -142,7 +142,6 @@ const config = {
   subtitle: "Netgear GS308T",
   switch_entity: "switch.office_switch",
   status_entity: "sensor.office_switch_status",
-  online_state: "Online",
   connectivity_entity: "binary_sensor.office_switch_connectivity",
   uptime_entity: "sensor.office_switch_uptime",
   traffic_in_entity: "sensor.office_switch_in",
