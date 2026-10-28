@@ -1,9 +1,9 @@
-# ha-switch
+# ha-switch-card
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![HACS Validation](https://github.com/juju35/ha-switch/actions/workflows/hacs.yml/badge.svg)](https://github.com/juju35/ha-switch/actions/workflows/hacs.yml)
-[![Validate](https://github.com/juju35/ha-switch/actions/workflows/validate.yml/badge.svg)](https://github.com/juju35/ha-switch/actions/workflows/validate.yml)
-[![Release](https://img.shields.io/github/v/release/juju35/ha-switch)](https://github.com/juju35/ha-switch/releases/latest)
+[![HACS Validation](https://github.com/juju35/ha-switch-card/actions/workflows/hacs.yml/badge.svg)](https://github.com/juju35/ha-switch-card/actions/workflows/hacs.yml)
+[![Validate](https://github.com/juju35/ha-switch-card/actions/workflows/validate.yml/badge.svg)](https://github.com/juju35/ha-switch-card/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/juju35/ha-switch-card)](https://github.com/juju35/ha-switch-card/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Custom Lovelace card for Home Assistant displaying a managed network switch (SNMP): power toggle, global status, connectivity, uptime, per-port state and traffic. Pure JavaScript, no dependencies (no mushroom, card-mod or button-card required). Fully configurable from the visual editor. FR/EN auto-detected.
@@ -12,7 +12,7 @@ Custom Lovelace card for Home Assistant displaying a managed network switch (SNM
 
 | Generic front panel | Netgear GS308T (drawn front panel) |
 |---|---|
-| ![card](https://raw.githubusercontent.com/juju35/ha-switch/main/screenshots/card.png) | ![GS308T](https://raw.githubusercontent.com/juju35/ha-switch/main/screenshots/card-gs308t.png) |
+| ![card](https://raw.githubusercontent.com/juju35/ha-switch-card/main/screenshots/card.png) | ![GS308T](https://raw.githubusercontent.com/juju35/ha-switch-card/main/screenshots/card-gs308t.png) |
 
 ## Features
 
@@ -45,13 +45,13 @@ Then click **Download**, and reload your browser when HACS asks you to.
 Or manually:
 
 1. Open HACS → **⋮** (top right) → **Custom repositories**
-2. Add `https://github.com/juju35/ha-switch` — Type: **Dashboard**
+2. Add `https://github.com/juju35/ha-switch-card` — Type: **Dashboard**
 3. Search for **Network Switch Card** and click **Download**
 4. Clear your browser cache and refresh
 
 ### Manual
 
-1. Download `ha-switch-card.js` from the [latest release](https://github.com/juju35/ha-switch/releases/latest).
+1. Download `ha-switch-card.js` from the [latest release](https://github.com/juju35/ha-switch-card/releases/latest).
 2. Copy it to `/config/www/ha-switch-card.js`.
 3. Go to **Settings → Dashboards → ⋮ → Resources** and add `/local/ha-switch-card.js` as a **JavaScript module**, or in YAML mode:
 

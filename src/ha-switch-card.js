@@ -759,7 +759,7 @@ if (!window.customCards.some((c) => c.type === 'ha-switch-card')) {
     name: _t.card_name,
     description: _t.card_desc,
     preview: true,
-    documentationURL: 'https://github.com/juju35/ha-switch',
+    documentationURL: 'https://github.com/juju35/ha-switch-card',
   });
 }
 

@@ -1,5 +1,5 @@
 {
-  "name": "ha-switch",
+  "name": "ha-switch-card",
   "version": "1.6.0",
   "description": "Custom Lovelace card for Home Assistant displaying a managed network switch (SNMP).",
   "private": true,
