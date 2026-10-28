@@ -29,7 +29,7 @@ test("esc escapes HTML text and attributes", () => {
 test("isSafeUrl accepts http(s) and relative paths, rejects javascript:/data:", () => {
   const { isSafeUrl } = loadCard("ha-switch-card.js", ["isSafeUrl"]);
   for (const u of ["http://switch.local", "https://switch.local/admin", "/local/admin"]) assert.equal(isSafeUrl(u), true, u);
-  for (const u of ["javascript:alert(1)", "data:text/html,x", "vbscript:x", " javascript:alert(1)"]) assert.equal(isSafeUrl(u), false, u);
+  for (const u of ["javascript:alert(1)", "data:text/html,x", "vbscript:x", " javascript:alert(1)", "//evil.com", "//evil.com/admin"]) assert.equal(isSafeUrl(u), false, u);
 });
 
 test("ports drawn and ports watched agree when ports is not a number", () => {
