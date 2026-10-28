@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.1 - 2026-10-28
+
+### Fixes
+- The admin `url` no longer accepts protocol-relative links (`//host`): relative paths must start with a single `/`, so the card can't be made to open an external site.
+- The card redraws when only a traffic sensor's unit or the header entity's friendly name changes.
+- A failed power toggle service call now redraws the card, so the toggle no longer stays visually flipped.
+- The power toggle is disabled when the switch entity is `unknown`, as it already was when `unavailable`.
+- Less work on each Home Assistant update: the watched entities and the config part of the render key are computed once per configuration.
+
+### Maintenance
+- Repository renamed to `ha-switch-card`: README, badges, "Add to HACS" buttons, HACS install URL and the card's documentation URL updated.
+- CI: releases gated on the tests, Screenshots workflow, `hacs/action` pinned to a release tag, npm Dependabot updates, unused ruff tooling removed. README no longer repeats the top screenshots. Nothing changes for users.
+
 ## 1.6.0 - 2026-10-26
 
 ### Fixes
