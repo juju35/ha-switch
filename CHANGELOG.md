@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 - 2026-10-28
+
+### Changes
+- German and Spanish translations: the card and its visual editor follow a German (`de`) or Spanish (`es`) dashboard language, including the Online / Idle status chip.
+
 ## 1.6.1 - 2026-10-28
 
 ### Fixes

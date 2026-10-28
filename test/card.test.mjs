@@ -125,3 +125,24 @@ test("online / idle states: English and French by default, case-insensitive, sho
   assert.equal(show("up", { online_state: "UP" }).color, COLORS.green);
   assert.equal(show("Online", { online_state: "up" }).color, COLORS.red);
 });
+
+test("I18N parity: every language has exactly the keys of en, placeholders included", () => {
+  const { I18N, HaSwitchCard } = loadCard("ha-switch-card.js", ["I18N", "HaSwitchCard"]);
+  const flat = (o, p = "") =>
+    Object.entries(o).flatMap(([k, v]) => (v && typeof v === "object" ? flat(v, `${p}${k}.`) : [[`${p}${k}`, v]]));
+  const ref = new Map(flat(I18N.en));
+  const placeholders = (s) => String(s).match(/\{\w+\}/g) || [];
+  for (const lang of ["fr", "de", "es"]) {
+    assert.ok(I18N[lang], lang);
+    const entries = new Map(flat(I18N[lang]));
+    assert.deepEqual([...entries.keys()].sort(), [...ref.keys()].sort(), lang);
+    for (const [k, v] of entries) assert.deepEqual(placeholders(v), placeholders(ref.get(k)), `${lang}.${k}`);
+  }
+  // The card is drawn in German and Spanish when the dashboard uses them.
+  for (const [language, label] of [["de", "Inaktiv"], ["es", "Inactivo"]]) {
+    const card = new HaSwitchCard();
+    card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", status_entity: "sensor.s" });
+    card.hass = { language, states: { "sensor.s": { state: "idle", attributes: {} } } };
+    assert.match(card.shadowRoot.innerHTML, new RegExp(`>${label}<`));
+  }
+});
