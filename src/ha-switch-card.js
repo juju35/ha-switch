@@ -1,5 +1,5 @@
 /**
- * ha-switch — custom Lovelace card for Home Assistant
+ * ha-switch-card — custom Lovelace card for Home Assistant
  * Displays a managed network switch (SNMP): status, uptime, port states, traffic.
  * Pure JavaScript, no dependencies (no mushroom / card-mod / button-card required).
  */
@@ -366,6 +366,10 @@ class HaSwitchCard extends HTMLElement {
       warned.add(msg);
       console.warn(`ha-switch-card: ${msg}`);
     }
+    // The config part of the render key and the watched entities only change here,
+    // not on every `set hass`: cache them instead of rebuilding them at each state change.
+    this._configKey = JSON.stringify(this._config);
+    this._watchedIds = this._watched();
     this._key = '';
     this._render();
   }
@@ -447,18 +451,24 @@ class HaSwitchCard extends HTMLElement {
   /* --- render --- */
   _render() {
     if (!this._config || !this._hass) return;
-    const key =
-      getLang(this._hass) +
-      JSON.stringify(this._config) +
-      this._watched().map((id) => this._state(id)?.state ?? '').join('|');
+    const c = this._config;
+    const headerEntity = c.status_entity || c.connectivity_entity || c.switch_entity;
+    // Attributes the card renders besides `.state`: the traffic unit (_formatTraffic) and the
+    // header entity's friendly_name (aria-label). Hash them too, so their changes redraw the card.
+    const entityKey = (id) => {
+      const st = this._state(id);
+      let k = st?.state ?? '';
+      if (id === c.traffic_in_entity || id === c.traffic_out_entity) k += `\u0000${st?.attributes?.unit_of_measurement ?? ''}`;
+      if (id === headerEntity) k += `\u0000${st?.attributes?.friendly_name ?? ''}`;
+      return k;
+    };
+    const key = getLang(this._hass) + this._configKey + this._watchedIds.map(entityKey).join('|');
     if (key === this._key) return;
     this._key = key;
 
-    const c = this._config;
     const t = I18N[getLang(this._hass)];
     const statusColor = this._statusColor();
     const sw = this._state(c.switch_entity);
-    const headerEntity = c.status_entity || c.connectivity_entity || c.switch_entity;
 
     /* chips */
     const chips = [];
@@ -545,10 +555,15 @@ class HaSwitchCard extends HTMLElement {
     const toggle = this.shadowRoot.querySelector('ha-switch');
     if (toggle && sw) {
       toggle.checked = sw.state === 'on';
-      toggle.disabled = sw.state === 'unavailable';
+      toggle.disabled = sw.state === 'unavailable' || sw.state === 'unknown';
       toggle.addEventListener('change', (ev) => {
         const [domain] = c.switch_entity.split('.');
-        this._hass.callService(domain, ev.target.checked ? 'turn_on' : 'turn_off', { entity_id: c.switch_entity });
+        // On failure the toggle would stay visually flipped until the next state change:
+        // drop the render key and redraw from the real state.
+        Promise.resolve(this._hass.callService(domain, ev.target.checked ? 'turn_on' : 'turn_off', { entity_id: c.switch_entity })).catch(() => {
+          this._key = '';
+          this._render();
+        });
       });
     }
   }
