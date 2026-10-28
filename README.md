@@ -115,10 +115,9 @@ Tapping any chip, tile or port opens its more-info dialog.
 
 ## Screenshots
 
-| Light | Dark |
-|---|---|
-| ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
-| ![card GS308T](screenshots/card-gs308t.png) | |
+Dark theme (the light theme and the GS308T front panel are shown at the top of this README):
+
+![card dark](screenshots/card-dark.png)
 
 ## How it works
 
