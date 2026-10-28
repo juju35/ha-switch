@@ -145,8 +145,9 @@ const getLang = (hass) => {
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-// Admin URLs opened on a tap: only http(s) and same-origin relative paths, never javascript:/data: from a YAML config.
-const isSafeUrl = (url) => /^https?:\/\//i.test(url) || String(url).startsWith('/');
+// Admin URLs opened on a tap: only http(s) and same-origin relative paths, never javascript:/data:
+// or protocol-relative //evil.com from a YAML config.
+const isSafeUrl = (url) => /^https?:\/\//i.test(url) || /^\/(?!\/)/.test(String(url));
 
 const formatBytes = (v) => {
   if (!Number.isFinite(v)) return '—';
