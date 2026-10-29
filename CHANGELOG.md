@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.3 - 2026-10-29
+
+### Maintenance
+- Translations: removed an unused editor label ("General" section) from all four languages. No visible change.
+
 ## 1.8.2 - 2026-10-29
 
 ### Fixes
