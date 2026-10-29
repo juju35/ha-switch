@@ -255,6 +255,10 @@ const isSafeUrl = (url) => {
   return /^https?:\/\//i.test(s) || (/^\/(?!\/)/.test(s) && !/[\\\t\n\r]/.test(s));
 };
 
+// After a successful power toggle call, how long to wait for the switch to report its new state
+// before redrawing the toggle from the unchanged one.
+const TOGGLE_CHECK_MS = 2000;
+
 // An entity Home Assistant has no value for: drawn grey (state unknown), not red (off / down).
 const isUnavailable = (st) => st?.state === 'unavailable' || st?.state === 'unknown';
 
@@ -526,8 +530,9 @@ class HaSwitchCard extends HTMLElement {
   _statusColor() {
     const c = this._config;
     const st = this._state(c.status_entity);
-    if (st) {
-      if (isUnavailable(st)) return COLORS.grey;
+    // A configured status sensor drives the colour, even when it is missing (renamed or deleted): grey, like unavailable.
+    if (c.status_entity) {
+      if (!st || isUnavailable(st)) return COLORS.grey;
       if (statusIs(st.state, c, 'online_state')) return COLORS.green;
       if (statusIs(st.state, c, 'idle_state')) return COLORS.orange;
       return COLORS.red;
@@ -608,7 +613,7 @@ class HaSwitchCard extends HTMLElement {
       // Online / idle read in the card's language, whatever the sensor reports; any other state as Home Assistant shows it.
       const online = statusIs(st?.state, c, 'online_state');
       const idle = !online && statusIs(st?.state, c, 'idle_state');
-      const icon = online ? 'mdi:check-circle' : idle ? 'mdi:minus-circle' : isUnavailable(st) ? 'mdi:help-circle' : 'mdi:alert-circle';
+      const icon = online ? 'mdi:check-circle' : idle ? 'mdi:minus-circle' : !st || isUnavailable(st) ? 'mdi:help-circle' : 'mdi:alert-circle';
       pill = this._chip(c.status_entity, icon, statusColor, online ? t.online : idle ? t.idle : this._formatState(st));
       if (conChip) chips.push(conChip);
     } else {
@@ -689,15 +694,26 @@ class HaSwitchCard extends HTMLElement {
       toggle.disabled = sw.state === 'unavailable' || sw.state === 'unknown';
       toggle.addEventListener('change', (ev) => {
         const [domain] = c.switch_entity.split('.');
+        const before = sw.state;
         // When the call fails, or succeeds but the entity keeps its state (a switch that does not answer),
-        // the render key does not change and the toggle would stay visually flipped: once the call settles,
-        // drop the key and redraw from the real state.
-        Promise.resolve(this._hass.callService(domain, ev.target.checked ? 'turn_on' : 'turn_off', { entity_id: c.switch_entity }))
-          .catch(() => {})
-          .then(() => {
-            this._key = '';
-            this._render();
-          });
+        // the render key does not change and the toggle would stay visually flipped: redraw from the real state.
+        // A failure redraws at once. A success waits: MQTT, cloud or polled SNMP switches report their new state
+        // after the call returns, and an immediate redraw would bounce the toggle back until it arrives.
+        const redraw = () => {
+          this._key = '';
+          this._render();
+        };
+        clearTimeout(this._toggleCheck);
+        Promise.resolve(this._hass.callService(domain, ev.target.checked ? 'turn_on' : 'turn_off', { entity_id: c.switch_entity })).then(
+          () => {
+            // One pending check per card, even when the calls of quick successive clicks settle out of order.
+            clearTimeout(this._toggleCheck);
+            this._toggleCheck = setTimeout(() => {
+              if (this._state(c.switch_entity)?.state === before) redraw();
+            }, TOGGLE_CHECK_MS);
+          },
+          redraw
+        );
       });
     }
   }
