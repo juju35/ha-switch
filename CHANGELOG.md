@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.1 - 2026-10-29
+
+### Fixes
+- The power toggle no longer bounces back to its old position after a click on switches that report their new state a moment after the command (MQTT, cloud or polled SNMP switches). It is redrawn from the real state at once when the command fails, and after 2 seconds when the switch kept its state.
+- A `status_entity` that no longer exists in Home Assistant (renamed or deleted) shows a grey header and a question-mark status pill, instead of taking the connectivity colour (green when connected) with an alert icon.
+
+### Maintenance
+- README: the status colours mention the grey `unavailable` / `unknown` / missing states, and the Online / Idle label follows the `language` option.
+
 ## 1.8.0 - 2026-10-29
 
 ### Fixes
