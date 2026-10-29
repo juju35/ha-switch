@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.2 - 2026-10-29
+
+### Fixes
+- An empty YAML key (`port_pattern:` with no value) or a numeric `port_pattern` no longer replaces the card with a "Cannot read properties of null" error: an empty key keeps its default value, and a number is used as text.
+
 ## 1.8.1 - 2026-10-29
 
 ### Fixes

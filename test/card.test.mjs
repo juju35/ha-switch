@@ -320,3 +320,26 @@ test("a configured status_entity missing from Home Assistant is grey with a ques
   card2.hass = hass;
   assert.equal(card2._statusColor(), COLORS.green);
 });
+
+test("an empty or non-text port_pattern in YAML does not break the card", () => {
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
+  // `port_pattern:` with no value is null in YAML: the default pattern is used.
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 2, port_pattern: null });
+  assert.deepEqual([...card._watched()], ["sensor.switch_port_1_status", "sensor.switch_port_2_status"]);
+  // A number is used as text, like the editor would store it.
+  const card2 = new HaSwitchCard();
+  card2.setConfig({ ports: 1, port_pattern: 5 });
+  assert.deepEqual([...card2._watched()], ["5"]);
+});
+
+test("other empty YAML keys fall back to their defaults too", () => {
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", name: null, icon: null, model: null });
+  assert.equal(card._config.name, "Switch");
+  assert.equal(card._config.icon, "mdi:switch");
+  assert.equal(card._config.model, "generic");
+  card.hass = { language: "en", states: { "sensor.p1": { state: "1" } } };
+  assert.match(card.shadowRoot.innerHTML, /Switch/);
+});
