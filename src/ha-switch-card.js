@@ -591,23 +591,29 @@ class HaSwitchCard extends HTMLElement {
     const statusColor = this._statusColor();
     const sw = this._state(c.switch_entity);
 
-    /* chips */
+    /* status pill (header, right of the title) and chips */
     const chips = [];
+    let conChip = '';
     const con = this._state(c.connectivity_entity);
     if (c.connectivity_entity) {
       const on = con?.state === 'on';
       // Unreachable (unavailable / unknown) is grey with a question mark, not the red "network off" of a real outage.
       const unknown = !con || isUnavailable(con);
       const icon = unknown ? 'mdi:help-network-outline' : on ? 'mdi:network-outline' : 'mdi:network-off-outline';
-      chips.push(this._chip(c.connectivity_entity, icon, unknown ? COLORS.grey : on ? COLORS.green : COLORS.red, this._formatState(con)));
+      conChip = this._chip(c.connectivity_entity, icon, unknown ? COLORS.grey : on ? COLORS.green : COLORS.red, this._formatState(con));
     }
+    let pill = '';
     const st = this._state(c.status_entity);
     if (c.status_entity) {
       // Online / idle read in the card's language, whatever the sensor reports; any other state as Home Assistant shows it.
       const online = statusIs(st?.state, c, 'online_state');
       const idle = !online && statusIs(st?.state, c, 'idle_state');
       const icon = online ? 'mdi:check-circle' : idle ? 'mdi:minus-circle' : isUnavailable(st) ? 'mdi:help-circle' : 'mdi:alert-circle';
-      chips.push(this._chip(c.status_entity, icon, statusColor, online ? t.online : idle ? t.idle : this._formatState(st)));
+      pill = this._chip(c.status_entity, icon, statusColor, online ? t.online : idle ? t.idle : this._formatState(st));
+      if (conChip) chips.push(conChip);
+    } else {
+      // No status sensor: connectivity is the header status.
+      pill = conChip;
     }
     if (c.uptime_entity) {
       chips.push(this._chip(c.uptime_entity, 'mdi:clock-outline', COLORS.neutral, formatUptime(this._state(c.uptime_entity)?.state, c.uptime_unit, t.day)));
@@ -661,7 +667,7 @@ class HaSwitchCard extends HTMLElement {
             <ha-icon icon="${esc(c.icon)}"></ha-icon>
           </div>
           <div class="titles">
-            <div class="name">${esc(c.name)}</div>
+            <div class="title-row"><div class="name">${esc(c.name)}</div>${pill}</div>
             ${c.subtitle ? `<div class="sub">${esc(c.subtitle)}</div>` : ''}
           </div>
           ${sw ? `<ha-switch></ha-switch>` : ''}
@@ -721,6 +727,10 @@ class HaSwitchCard extends HTMLElement {
       }
       .ic.big { --size: 40px; --mdc-icon-size: 24px; background: color-mix(in srgb, var(--c) 16%, transparent); }
       .titles { min-width: 0; }
+      /* The status pill shares the title's line, right of the name (left of the power toggle), whatever the subtitle. */
+      .title-row { display: flex; align-items: center; gap: 8px; }
+      .title-row > .name { flex: 1; min-width: 0; }
+      .title-row > .chip { flex: none; white-space: nowrap; }
       .name { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       ha-switch {

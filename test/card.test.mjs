@@ -235,3 +235,27 @@ test("non-numeric port overlay positions fall back to their defaults and are rep
   assert.equal(configWarnings(config).length, 3);
   assert.equal(configWarnings({ ...config, port_start: 5, port_step: "2.5", port_bottom: 0 }).length, 0);
 });
+
+test("the status pill sits on the title line, right of the name; other chips stay under the header", () => {
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
+  const states = {
+    "sensor.s": { state: "Online", attributes: {} },
+    "binary_sensor.c": { state: "on", attributes: {} },
+    "sensor.up": { state: "100", attributes: {} },
+  };
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", status_entity: "sensor.s", connectivity_entity: "binary_sensor.c", uptime_entity: "sensor.up" });
+  card.hass = { language: "en", states };
+  const html = card.shadowRoot.innerHTML;
+  const [header, body] = html.split('<div class="chips">');
+  assert.match(header, /<div class="title-row"><div class="name">Switch<\/div><div class="chip"[^>]*data-entity="sensor\.s"/);
+  assert.match(body, /data-entity="binary_sensor\.c"/);
+  assert.match(body, /data-entity="sensor\.up"/);
+  assert.doesNotMatch(body, /data-entity="sensor\.s"/);
+  // Without a status sensor, connectivity is the header pill.
+  const card2 = new HaSwitchCard();
+  card2.setConfig({ ports: 1, port_pattern: "sensor.p{n}", connectivity_entity: "binary_sensor.c" });
+  card2.hass = { language: "en", states };
+  assert.match(card2.shadowRoot.innerHTML, /<div class="title-row"><div class="name">Switch<\/div><div class="chip"[^>]*data-entity="binary_sensor\.c"/);
+  assert.doesNotMatch(card2.shadowRoot.innerHTML, /class="chips"/);
+});

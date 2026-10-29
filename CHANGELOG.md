@@ -11,10 +11,11 @@
 - Non-numeric `port_start` / `port_step` / `port_bottom` in YAML fall back to their defaults (with a console warning) instead of misplacing the ports.
 
 ### Changes
+- Header status pill on the right of the header, on the title's line (left of the power toggle), like the other juju35 cards: it shows `status_entity`, or `connectivity_entity` when no status is set; the remaining chips stay under the header.
 - New `language` option (and editor field) to force the card language: `en`, `fr`, `de` or `es`; unset, the Home Assistant language is used as before.
 
 ### Maintenance
-- README: language support, editor sections, grey unavailable states and the header layout (status chip instead of a header pill, the toggle sits on the right) documented. CI: the Screenshots job fails clearly when apt fails three times and time-boxes the Chromium download; Biome no longer runs twice in the Lint workflow.
+- README: language support, editor sections, grey unavailable states and the header layout documented. CI: the Screenshots job fails clearly when apt fails three times and time-boxes the Chromium download; Biome no longer runs twice in the Lint workflow; when the Screenshots job pushes refreshed captures (with `GITHUB_TOKEN`, which triggers no `pull_request` run), it re-runs Lint, Validate and HACS on the branch through `workflow_dispatch`, so the PR's last commit has its checks.
 
 ## 1.7.0 - 2026-10-28
 
