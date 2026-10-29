@@ -6,7 +6,7 @@
 [![Release](https://img.shields.io/github/v/release/juju35/ha-switch-card)](https://github.com/juju35/ha-switch-card/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Custom Lovelace card for Home Assistant displaying a managed network switch (SNMP): power toggle, global status, connectivity, uptime, per-port state and traffic. Pure JavaScript, no dependencies (no mushroom, card-mod or button-card required). Fully configurable from the visual editor. FR/EN auto-detected.
+Custom Lovelace card for Home Assistant displaying a managed network switch (SNMP): power toggle, global status, connectivity, uptime, per-port state and traffic. Pure JavaScript, no dependencies (no mushroom, card-mod or button-card required). Fully configurable from the visual editor. English, French, German and Spanish, auto-detected from Home Assistant or set with `language`.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=juju35&repository=ha-switch-card&category=plugin)
 
@@ -68,7 +68,7 @@ Or manually:
 
 ### Visual editor
 
-Edit a dashboard, click **Add card** and search for **Network switch card**. Every option below is available in the editor, grouped by entities, ports and appearance.
+Edit a dashboard, click **Add card** and search for **Network switch card**. Every option below is available in the editor, grouped by entities, ports, status and appearance.
 
 ### Full options
 
@@ -101,15 +101,16 @@ url: http://switch.local
 | `connectivity_entity` | – | Connectivity `binary_sensor` |
 | `uptime_entity` | – | Uptime sensor |
 | `uptime_unit` | `timeticks` | `timeticks` (SNMP, 1/100 s) or `seconds` |
-| `traffic_in_entity` / `traffic_out_entity` | – | Traffic sensors (bytes, auto-scaled) |
+| `traffic_in_entity` / `traffic_out_entity` | – | Traffic sensors: bytes are auto-scaled, other units (`kB/s`, `Mbit/s`…) are shown as Home Assistant formats them |
 | `ports` | `8` | Number of ports |
 | `port_pattern` | `sensor.switch_port_{n}_status` | Port entity pattern, `{n}` = port number |
 | `port_on_state` | `1` | State meaning "port up" |
-| `online_state` / `idle_state` | `Online` or `En ligne` / `Idle` or `Inactif` | Values of `status_entity` shown green / orange (anything else → red), compared case-insensitively. Unset, both the English and French values match; set them to the state your status sensor reports otherwise, e.g. `up` / `standby`. The status chip then reads Online / Idle in the dashboard language (English, French, German or Spanish) |
+| `online_state` / `idle_state` | `Online` or `En ligne` / `Idle` or `Inactif` | Values of `status_entity` shown green / orange (anything else → red), compared case-insensitively. Unset, both the English and French values match; set them to the state your status sensor reports otherwise, e.g. `up` / `standby`. The status pill then reads Online / Idle in the dashboard language (English, French, German or Spanish) |
 | `model` | `generic` | Embedded device image: `generic` (drawn front panel, any port count, up to 52) or `gs308t` (drawn Netgear GS308T / S350 front panel: 8 ports in two groups of four, link LED lit when the port is up) |
 | `image` | – | Custom device image URL, overrides `model` |
 | `port_start` / `port_step` / `port_bottom` | `21` / `10` / `39` | Port overlay position on a custom `image` (%) |
 | `url` | – | Opened when tapping the device |
+| `language` | Auto | Force language: `en`, `fr`, `de` or `es` (auto-detects from HA settings) |
 
 Tapping any chip, tile or port opens its more-info dialog.
 
@@ -121,7 +122,9 @@ Dark theme (the light theme and the GS308T front panel are shown at the top of t
 
 ## How it works
 
-Ports are read from `port_pattern` with `{n}` replaced by the port number, and drawn green when their state equals `port_on_state`, red otherwise, grey when the entity is missing. The header icon and the power LED follow `status_entity` (`online_state` green, `idle_state` orange, anything else red), or `connectivity_entity` when no status is set.
+Ports are read from `port_pattern` with `{n}` replaced by the port number, and drawn green when their state equals `port_on_state`, red otherwise, grey when the entity is missing, `unavailable` or `unknown` (so a failed SNMP poll does not show every port as down). The header icon and the power LED follow `status_entity` (`online_state` green, `idle_state` orange, `unavailable` / `unknown` grey, anything else red), or `connectivity_entity` when no status is set (`on` green, `unavailable` / `unknown` grey, otherwise red).
+
+As in the other juju35 cards, the status pill sits on the right of the header, on the title's line (left of the power toggle): it shows `status_entity`, or `connectivity_entity` when no status is set. The other chips (connectivity when a status is set, uptime) are shown under the header.
 
 The generic front panel is an SVG drawn by the card: up to 12 ports on one row, beyond that odd ports on top and even ports below, like real switches. Its body is derived from the theme's card and text colors, so it stays readable in light and dark mode.
 
@@ -144,7 +147,7 @@ npm run screenshots  # renders the card with mock entities into screenshots/
 
 ## Translations
 
-The card auto-detects the language from your Home Assistant settings. Currently supported:
+The card auto-detects the language from your Home Assistant settings; set `language` to force one. Currently supported:
 
 | Language | Code |
 |---|---|

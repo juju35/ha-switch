@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.8.0 - 2026-10-29
+
+### Fixes
+- The admin `url` no longer opens an external site through a relative path containing `\`, a tab or a newline (`/\evil.com`, `/<tab>/evil.com`), which browsers read as `//evil.com`.
+- Traffic tiles: an `unavailable` / `unknown` sensor reads as Home Assistant shows it instead of "unavailable MB", and values in other units (`kB/s`, `Mbit/s`…) are rounded and localized by Home Assistant.
+- Ports, the header icon, the power LED and the status / connectivity chips are grey when their entity is `unavailable` or `unknown`, instead of red as if the switch or the port were down. The connectivity chip shows a question-mark icon in that case.
+- The power toggle no longer stays visually flipped when the service call succeeds but the switch keeps its state.
+- Editor helpers read "Default: 8" in English, German and Spanish (the French spacing "Default : 8" is kept for French only).
+- Non-numeric `port_start` / `port_step` / `port_bottom` in YAML fall back to their defaults (with a console warning) instead of misplacing the ports.
+
+### Changes
+- Header status pill on the right of the header, on the title's line (left of the power toggle), like the other juju35 cards: it shows `status_entity`, or `connectivity_entity` when no status is set; the remaining chips stay under the header.
+- New `language` option (and editor field) to force the card language: `en`, `fr`, `de` or `es`; unset, the Home Assistant language is used as before.
+
+### Maintenance
+- README: language support, editor sections, grey unavailable states and the header layout documented. CI: the Screenshots job fails clearly when apt fails three times and time-boxes the Chromium download; Biome no longer runs twice in the Lint workflow; when the Screenshots job pushes refreshed captures (with `GITHUB_TOKEN`, which triggers no `pull_request` run), it re-runs Lint, Validate and HACS on the branch through `workflow_dispatch`, so the PR's last commit has its checks.
+
 ## 1.7.0 - 2026-10-28
 
 ### Changes

@@ -12,6 +12,7 @@ on:
 # back onto the pull request's own branch, so they land through the normal merge.
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: screenshots-${{ github.head_ref || github.ref_name }}
@@ -35,7 +36,9 @@ jobs:
       - run: npm ci
       # Download the browser binary (no apt here) separately from its system libraries, so the apt work all sits in
       # the one time-boxed, retried step below and a hung mirror can never stall an unguarded install.
-      - run: npx playwright install chromium
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
       # Roboto + the browser's apt deps, each apt call time-boxed and retried
       # so a flaky mirror is abandoned and retried instead of hanging.
       - name: Install Roboto and browser deps
@@ -45,9 +48,10 @@ jobs:
             timeout 150 sudo apt-get update \
               && timeout 300 sudo apt-get install -y fonts-roboto \
               && timeout 300 npx playwright install-deps chromium \
-              && break
+              && ok=1 && break
             echo "apt attempt $i failed or timed out, retrying in 15s"; sleep 15
           done
+          [ -n "$ok" ] || { echo "::error::apt failed 3 times"; exit 1; }
       - run: npm run build
       - name: Render screenshots
         run: |
@@ -57,6 +61,7 @@ jobs:
             exit 1
           }
       - name: Commit refreshed screenshots
+        id: commit
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           if [ -z "$(git status --porcelain screenshots)" ]; then
@@ -68,6 +73,17 @@ jobs:
           git add screenshots
           git commit -m "chore: refresh screenshots"
           git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+      # A push made with GITHUB_TOKEN does not trigger pull_request workflows, but workflow_dispatch does:
+      # re-run the PR checks on the branch so the screenshot commit gets its own lint/validate/HACS results.
+      - name: Re-run checks on the screenshot commit
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in lint.yml validate.yml hacs.yml; do
+            [ -f ".github/workflows/$wf" ] && gh workflow run "$wf" --ref "${{ github.head_ref }}"
+          done
       - name: Upload screenshots (manual run)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
