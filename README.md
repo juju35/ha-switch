@@ -105,7 +105,7 @@ url: http://switch.local
 | `ports` | `8` | Number of ports |
 | `port_pattern` | `sensor.switch_port_{n}_status` | Port entity pattern, `{n}` = port number |
 | `port_on_state` | `1` | State meaning "port up" |
-| `online_state` / `idle_state` | `Online` or `En ligne` / `Idle` or `Inactif` | Values of `status_entity` shown green / orange (anything else → red), compared case-insensitively. Unset, both the English and French values match; set them to the state your status sensor reports otherwise, e.g. `up` / `standby`. The status pill then reads Online / Idle in the dashboard language (English, French, German or Spanish) |
+| `online_state` / `idle_state` | `Online` or `En ligne` / `Idle` or `Inactif` | Values of `status_entity` shown green / orange (`unavailable`, `unknown` or a missing sensor → grey, anything else → red), compared case-insensitively. Unset, both the English and French values match; set them to the state your status sensor reports otherwise, e.g. `up` / `standby`. The status pill then reads Online / Idle in the card language (English, French, German or Spanish: the `language` option, or the Home Assistant language when unset) |
 | `model` | `generic` | Embedded device image: `generic` (drawn front panel, any port count, up to 52) or `gs308t` (drawn Netgear GS308T / S350 front panel: 8 ports in two groups of four, link LED lit when the port is up) |
 | `image` | – | Custom device image URL, overrides `model` |
 | `port_start` / `port_step` / `port_bottom` | `21` / `10` / `39` | Port overlay position on a custom `image` (%) |
@@ -122,7 +122,7 @@ Dark theme (the light theme and the GS308T front panel are shown at the top of t
 
 ## How it works
 
-Ports are read from `port_pattern` with `{n}` replaced by the port number, and drawn green when their state equals `port_on_state`, red otherwise, grey when the entity is missing, `unavailable` or `unknown` (so a failed SNMP poll does not show every port as down). The header icon and the power LED follow `status_entity` (`online_state` green, `idle_state` orange, `unavailable` / `unknown` grey, anything else red), or `connectivity_entity` when no status is set (`on` green, `unavailable` / `unknown` grey, otherwise red).
+Ports are read from `port_pattern` with `{n}` replaced by the port number, and drawn green when their state equals `port_on_state`, red otherwise, grey when the entity is missing, `unavailable` or `unknown` (so a failed SNMP poll does not show every port as down). The header icon and the power LED follow `status_entity` (`online_state` green, `idle_state` orange, `unavailable` / `unknown` or missing grey, anything else red), or `connectivity_entity` when no status is set (`on` green, `unavailable` / `unknown` grey, otherwise red).
 
 As in the other juju35 cards, the status pill sits on the right of the header, on the title's line (left of the power toggle): it shows `status_entity`, or `connectivity_entity` when no status is set. The other chips (connectivity when a status is set, uptime) are shown under the header.
 
