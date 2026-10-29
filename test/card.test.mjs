@@ -181,24 +181,66 @@ test("unavailable / unknown ports, status and connectivity are grey, not red", (
   }
 });
 
-test("the power toggle is redrawn from the real state once the service call settles", async () => {
-  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
-  for (const outcome of ["resolve", "reject"]) {
-    const card = new HaSwitchCard();
-    const toggle = { checked: false, disabled: false, listeners: [], addEventListener(_, fn) { this.listeners.push(fn); } };
-    card.shadowRoot.querySelector = (sel) => (sel === "ha-switch" ? toggle : null);
-    card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", switch_entity: "switch.sw" });
-    card.hass = {
-      language: "en",
-      states: { "switch.sw": { state: "off", attributes: {} } },
-      callService: () => (outcome === "resolve" ? Promise.resolve() : Promise.reject(new Error("x"))),
-    };
-    // HA would set it, the switch does not answer: the entity stays off.
-    toggle.checked = true;
+// A card with a fake power toggle and manual timers. click(checked) flips the toggle as ha-switch does and fires `change`.
+function toggleCard({ callService, state = "off" } = {}) {
+  const timers = [];
+  const setTimeout = (fn, ms) => timers.push({ fn, ms }) && timers.length;
+  const clearTimeout = (id) => {
+    if (timers[id - 1]) timers[id - 1].fn = null;
+  };
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"], { setTimeout, clearTimeout });
+  const card = new HaSwitchCard();
+  const toggle = { checked: false, disabled: false, listeners: [], addEventListener(_, fn) { this.listeners.push(fn); } };
+  card.shadowRoot.querySelector = (sel) => (sel === "ha-switch" ? toggle : null);
+  card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", switch_entity: "switch.sw" });
+  const hass = (s) => ({ language: "en", states: { "switch.sw": { state: s, attributes: {} } }, callService: callService ?? (() => Promise.resolve()) });
+  card.hass = hass(state);
+  const click = async (checked) => {
+    toggle.checked = checked;
     toggle.listeners.at(-1)({ target: toggle });
     await new Promise((r) => setImmediate(r));
-    assert.equal(toggle.checked, false, outcome);
-  }
+  };
+  const runTimers = () => {
+    for (const t of timers.splice(0)) t.fn?.();
+  };
+  return { card, toggle, click, runTimers, timers, setState: (s) => (card.hass = hass(s)) };
+}
+
+test("a failed power toggle call redraws the toggle from the real state at once", async () => {
+  const { toggle, click } = toggleCard({ callService: () => Promise.reject(new Error("x")) });
+  await click(true);
+  assert.equal(toggle.checked, false);
+});
+
+test("a successful power toggle call does not bounce the toggle back before the new state arrives", async () => {
+  // MQTT, cloud or polled SNMP switches report their new state after the service call has returned.
+  const { toggle, click, runTimers, setState } = toggleCard();
+  await click(true);
+  assert.equal(toggle.checked, true, "no redraw from the old state right after the call");
+  setState("on");
+  assert.equal(toggle.checked, true);
+  runTimers();
+  assert.equal(toggle.checked, true, "state changed: no forced redraw");
+});
+
+test("a successful power toggle call on a switch that keeps its state is redrawn after a delay", async () => {
+  const { card, toggle, click, runTimers, timers } = toggleCard();
+  await click(true);
+  assert.equal(toggle.checked, true);
+  assert.ok(timers.some((t) => t.ms >= 1000), "a delayed check is scheduled");
+  // An attribute-only update keeps the render key: the toggle would stay flipped without the delayed redraw.
+  card.hass = { ...card._hass, states: { "switch.sw": { state: "off", attributes: { x: 1 } } } };
+  runTimers();
+  assert.equal(toggle.checked, false);
+});
+
+test("a second toggle click replaces the pending delayed check", async () => {
+  const { toggle, click, runTimers, timers } = toggleCard();
+  await click(true);
+  await click(false);
+  assert.equal(timers.filter((t) => t.fn).length, 1);
+  runTimers();
+  assert.equal(toggle.checked, false);
 });
 
 test("language option overrides the Home Assistant language; default helper separator per language", () => {
@@ -258,4 +300,23 @@ test("the status pill sits on the title line, right of the name; other chips sta
   card2.hass = { language: "en", states };
   assert.match(card2.shadowRoot.innerHTML, /<div class="title-row"><div class="name">Switch<\/div><div class="chip"[^>]*data-entity="binary_sensor\.c"/);
   assert.doesNotMatch(card2.shadowRoot.innerHTML, /class="chips"/);
+});
+
+test("a configured status_entity missing from Home Assistant is grey with a question mark, not the connectivity colour", () => {
+  const { HaSwitchCard, COLORS } = loadCard("ha-switch-card.js", ["HaSwitchCard", "COLORS"]);
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", status_entity: "sensor.renamed", connectivity_entity: "binary_sensor.c" });
+  const hass = { language: "en", states: { "binary_sensor.c": { state: "on", attributes: {} } } };
+  card.hass = hass;
+  assert.equal(card._statusColor(), COLORS.grey);
+  const html = card.shadowRoot.innerHTML;
+  const pill = html.match(/<div class="title-row">[\s\S]*?<\/div>\s*<\/div>/)[0];
+  assert.match(pill, /mdi:help-circle/);
+  assert.doesNotMatch(pill, /mdi:alert-circle/);
+  assert.ok(html.includes(`class="ic big" style="--c:${COLORS.grey}"`), "header icon grey");
+  // Without a status_entity, connectivity still drives the colour.
+  const card2 = new HaSwitchCard();
+  card2.setConfig({ ports: 1, port_pattern: "sensor.p{n}", connectivity_entity: "binary_sensor.c" });
+  card2.hass = hass;
+  assert.equal(card2._statusColor(), COLORS.green);
 });
