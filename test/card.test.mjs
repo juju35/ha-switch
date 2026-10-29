@@ -343,3 +343,16 @@ test("other empty YAML keys fall back to their defaults too", () => {
   card.hass = { language: "en", states: { "sensor.p1": { state: "1" } } };
   assert.match(card.shadowRoot.innerHTML, /Switch/);
 });
+
+test("I18N: every editor section label is shown by the editor (no orphan section keys)", () => {
+  const { I18N, HaSwitchCardEditor } = loadCard("ha-switch-card.js", ["I18N", "HaSwitchCardEditor"]);
+  for (const lang of ["en", "fr", "de", "es"]) {
+    const t = I18N[lang];
+    const titles = new HaSwitchCardEditor()._schema(t).filter((s) => s.type === "expandable").map((s) => s.title);
+    for (const [key, label] of Object.entries(t.sections)) {
+      assert.ok(titles.includes(label), `${lang}.sections.${key} is never shown`);
+    }
+    // Each expandable section has its own label.
+    assert.equal(new Set(titles).size, titles.length, lang);
+  }
+});
