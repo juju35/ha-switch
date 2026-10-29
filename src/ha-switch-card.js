@@ -16,7 +16,6 @@ const I18N = {
     colon: ' : ',
     lang_auto: 'Automatique',
     sections: {
-      general: 'Général',
       entities: 'Entités',
       ports: 'Ports',
       status: 'Statut',
@@ -63,7 +62,6 @@ const I18N = {
     colon: ': ',
     lang_auto: 'Automatic',
     sections: {
-      general: 'General',
       entities: 'Entities',
       ports: 'Ports',
       status: 'Status',
@@ -110,7 +108,6 @@ const I18N = {
     colon: ': ',
     lang_auto: 'Automatisch',
     sections: {
-      general: 'Allgemein',
       entities: 'Entitäten',
       ports: 'Ports',
       status: 'Status',
@@ -157,7 +154,6 @@ const I18N = {
     colon: ': ',
     lang_auto: 'Automático',
     sections: {
-      general: 'General',
       entities: 'Entidades',
       ports: 'Puertos',
       status: 'Estado',
