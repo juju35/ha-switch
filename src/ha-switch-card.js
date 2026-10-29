@@ -478,7 +478,8 @@ class HaSwitchCard extends HTMLElement {
 
   setConfig(config) {
     if (!config) throw new Error('Invalid configuration');
-    this._config = { ...DEFAULTS, ...config };
+    // A YAML key left empty (`port_pattern:`) is null: keep the default instead of overriding it with null.
+    this._config = { ...DEFAULTS, ...Object.fromEntries(Object.entries(config).filter(([, v]) => v != null)) };
     // Configs the editor would not produce: warn, but still draw the card as before.
     for (const msg of configWarnings(this._config)) {
       if (warned.has(msg)) continue;
@@ -512,7 +513,8 @@ class HaSwitchCard extends HTMLElement {
   }
 
   _portEntity(n) {
-    return this._config.port_pattern.replace('{n}', n);
+    // String(): a YAML number (`port_pattern: 5`) has no replace().
+    return String(this._config.port_pattern).replace('{n}', n);
   }
 
   // Ports drawn and watched: the same count, 8 when `ports` is not a number.
