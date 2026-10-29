@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: "3.13"
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+        env:
+          # Biome runs in its own job below (with GitHub annotations): skip its pre-commit hook here.
+          SKIP: biome-check
 
   biome:
     name: Biome (card JS)
