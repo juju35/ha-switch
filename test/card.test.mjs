@@ -30,6 +30,8 @@ test("isSafeUrl accepts http(s) and relative paths, rejects javascript:/data:", 
   const { isSafeUrl } = loadCard("ha-switch-card.js", ["isSafeUrl"]);
   for (const u of ["http://switch.local", "https://switch.local/admin", "/local/admin"]) assert.equal(isSafeUrl(u), true, u);
   for (const u of ["javascript:alert(1)", "data:text/html,x", "vbscript:x", " javascript:alert(1)", "//evil.com", "//evil.com/admin"]) assert.equal(isSafeUrl(u), false, u);
+  // The URL parser reads "\\" as "/" and drops tabs and newlines: these would open evil.com.
+  for (const u of ["/\\evil.com", "/\t/evil.com", "/\n/evil.com", "/\r/evil.com", "/\\/evil.com"]) assert.equal(isSafeUrl(u), false, JSON.stringify(u));
 });
 
 test("ports drawn and ports watched agree when ports is not a number", () => {
@@ -145,4 +147,91 @@ test("I18N parity: every language has exactly the keys of en, placeholders inclu
     card.hass = { language, states: { "sensor.s": { state: "idle", attributes: {} } } };
     assert.match(card.shadowRoot.innerHTML, new RegExp(`>${label}<`));
   }
+});
+
+test("traffic tiles: unavailable reads as Home Assistant shows it, other units are formatted by Home Assistant", () => {
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", traffic_in_entity: "sensor.in" });
+  card.hass = { language: "en", states: {}, formatEntityState: (st) => (st.state === "unavailable" ? "Unavailable" : `fmt:${st.state}`) };
+  const fmt = (state, unit) => card._formatTraffic({ state, attributes: unit ? { unit_of_measurement: unit } : {} });
+  assert.equal(fmt("unavailable", "MB"), "Unavailable");
+  assert.equal(fmt("1234.56789", "kB/s"), "fmt:1234.56789");
+  assert.equal(fmt("2048", "B"), "2.00 KB");
+  assert.equal(fmt("2048"), "2.00 KB");
+});
+
+test("unavailable / unknown ports, status and connectivity are grey, not red", () => {
+  const { HaSwitchCard, COLORS } = loadCard("ha-switch-card.js", ["HaSwitchCard", "COLORS"]);
+  for (const state of ["unavailable", "unknown"]) {
+    const card = new HaSwitchCard();
+    card.setConfig({ ports: 2, port_pattern: "sensor.p{n}", connectivity_entity: "binary_sensor.c" });
+    card.hass = { language: "en", states: { "sensor.p1": { state, attributes: {} }, "sensor.p2": { state: "2", attributes: {} }, "binary_sensor.c": { state, attributes: {} } } };
+    assert.equal(card._statusColor(), COLORS.grey, state);
+    const html = card.shadowRoot.innerHTML;
+    assert.match(html, /mdi:help-network-outline/);
+    assert.doesNotMatch(html, /mdi:network-off-outline/);
+    const ports = [...html.matchAll(/data-entity="sensor\.p\d"[\s\S]*?style="fill:([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(ports, [COLORS.grey, COLORS.red], state);
+
+    const card2 = new HaSwitchCard();
+    card2.setConfig({ ports: 1, port_pattern: "sensor.p{n}", status_entity: "sensor.s", connectivity_entity: "binary_sensor.c" });
+    card2.hass = { language: "en", states: { "sensor.s": { state, attributes: {} }, "binary_sensor.c": { state: "on", attributes: {} } } };
+    assert.equal(card2._statusColor(), COLORS.grey, state);
+  }
+});
+
+test("the power toggle is redrawn from the real state once the service call settles", async () => {
+  const { HaSwitchCard } = loadCard("ha-switch-card.js", ["HaSwitchCard"]);
+  for (const outcome of ["resolve", "reject"]) {
+    const card = new HaSwitchCard();
+    const toggle = { checked: false, disabled: false, listeners: [], addEventListener(_, fn) { this.listeners.push(fn); } };
+    card.shadowRoot.querySelector = (sel) => (sel === "ha-switch" ? toggle : null);
+    card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", switch_entity: "switch.sw" });
+    card.hass = {
+      language: "en",
+      states: { "switch.sw": { state: "off", attributes: {} } },
+      callService: () => (outcome === "resolve" ? Promise.resolve() : Promise.reject(new Error("x"))),
+    };
+    // HA would set it, the switch does not answer: the entity stays off.
+    toggle.checked = true;
+    toggle.listeners.at(-1)({ target: toggle });
+    await new Promise((r) => setImmediate(r));
+    assert.equal(toggle.checked, false, outcome);
+  }
+});
+
+test("language option overrides the Home Assistant language; default helper separator per language", () => {
+  const { HaSwitchCard, HaSwitchCardEditor } = loadCard("ha-switch-card.js", ["HaSwitchCard", "HaSwitchCardEditor"]);
+  const card = new HaSwitchCard();
+  card.setConfig({ ports: 1, port_pattern: "sensor.p{n}", status_entity: "sensor.s", language: "fr" });
+  card.hass = { language: "en", states: { "sensor.s": { state: "idle", attributes: {} } } };
+  assert.match(card.shadowRoot.innerHTML, />Inactif</);
+
+  const helper = (language, config = { type: "custom:ha-switch-card" }) => {
+    const editor = new HaSwitchCardEditor();
+    editor.setConfig(config);
+    editor.hass = { language, states: {} };
+    return editor._form.computeHelper({ name: "ports" });
+  };
+  assert.equal(helper("en"), "Default: 8");
+  assert.equal(helper("de"), "Standard: 8");
+  assert.equal(helper("es"), "Predeterminado: 8");
+  assert.equal(helper("fr"), "Défaut : 8");
+  assert.equal(helper("en", { language: "fr" }), "Défaut : 8");
+});
+
+test("non-numeric port overlay positions fall back to their defaults and are reported", () => {
+  const { HaSwitchCard, configWarnings } = loadCard("ha-switch-card.js", ["HaSwitchCard", "configWarnings"]);
+  const config = { ports: 2, port_pattern: "sensor.p{n}", image: "/local/x.png", port_start: "abc", port_step: "x", port_bottom: "y" };
+  const card = new HaSwitchCard();
+  card.setConfig(config);
+  card.hass = { language: "en", states: {} };
+  const html = card.shadowRoot.innerHTML;
+  assert.doesNotMatch(html, /NaN/);
+  assert.match(html, /left:21%/);
+  assert.match(html, /left:31%/);
+  assert.match(html, /bottom:39%/);
+  assert.equal(configWarnings(config).length, 3);
+  assert.equal(configWarnings({ ...config, port_start: 5, port_step: "2.5", port_bottom: 0 }).length, 0);
 });

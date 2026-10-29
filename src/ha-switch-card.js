@@ -13,6 +13,8 @@ const I18N = {
     out: 'Trafic sortant',
     port: 'Port',
     default: 'Défaut',
+    colon: ' : ',
+    lang_auto: 'Automatique',
     sections: {
       general: 'Général',
       entities: 'Entités',
@@ -42,6 +44,7 @@ const I18N = {
       port_start: 'Position du 1er port (%)',
       port_step: 'Écart entre ports (%)',
       port_bottom: 'Hauteur des ports (% depuis le bas)',
+      language: 'Langue',
     },
     units: { timeticks: 'Centièmes de seconde (SNMP)', seconds: 'Secondes' },
     day: 'j',
@@ -57,6 +60,8 @@ const I18N = {
     out: 'Outgoing traffic',
     port: 'Port',
     default: 'Default',
+    colon: ': ',
+    lang_auto: 'Automatic',
     sections: {
       general: 'General',
       entities: 'Entities',
@@ -86,6 +91,7 @@ const I18N = {
       port_start: 'First port position (%)',
       port_step: 'Spacing between ports (%)',
       port_bottom: 'Port height (% from bottom)',
+      language: 'Language',
     },
     units: { timeticks: 'Hundredths of a second (SNMP)', seconds: 'Seconds' },
     day: 'd',
@@ -101,6 +107,8 @@ const I18N = {
     out: 'Ausgehender Datenverkehr',
     port: 'Port',
     default: 'Standard',
+    colon: ': ',
+    lang_auto: 'Automatisch',
     sections: {
       general: 'Allgemein',
       entities: 'Entitäten',
@@ -130,6 +138,7 @@ const I18N = {
       port_start: 'Position des ersten Ports (%)',
       port_step: 'Abstand zwischen den Ports (%)',
       port_bottom: 'Höhe der Ports (% von unten)',
+      language: 'Sprache',
     },
     units: { timeticks: 'Hundertstelsekunden (SNMP)', seconds: 'Sekunden' },
     day: 'T',
@@ -145,6 +154,8 @@ const I18N = {
     out: 'Tráfico saliente',
     port: 'Puerto',
     default: 'Predeterminado',
+    colon: ': ',
+    lang_auto: 'Automático',
     sections: {
       general: 'General',
       entities: 'Entidades',
@@ -174,6 +185,7 @@ const I18N = {
       port_start: 'Posición del primer puerto (%)',
       port_step: 'Separación entre puertos (%)',
       port_bottom: 'Altura de los puertos (% desde abajo)',
+      language: 'Idioma',
     },
     units: { timeticks: 'Centésimas de segundo (SNMP)', seconds: 'Segundos' },
     day: 'd',
@@ -225,8 +237,9 @@ const COLORS = {
 // Darker shade of a port color, for its contacts and LEDs.
 const shade = (color) => `color-mix(in srgb, ${color} 45%, #000)`;
 
-const getLang = (hass) => {
-  const l = (hass?.locale?.language || hass?.language || navigator.language || 'en').slice(0, 2);
+// `language` from the card config wins over the Home Assistant language.
+const getLang = (hass, config) => {
+  const l = String(config?.language || hass?.locale?.language || hass?.language || navigator.language || 'en').slice(0, 2);
   return I18N[l] ? l : 'en';
 };
 
@@ -234,8 +247,19 @@ const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Admin URLs opened on a tap: only http(s) and same-origin relative paths, never javascript:/data:
-// or protocol-relative //evil.com from a YAML config.
-const isSafeUrl = (url) => /^https?:\/\//i.test(url) || /^\/(?!\/)/.test(String(url));
+// or protocol-relative //evil.com from a YAML config. The browser's URL parser reads `\` as `/` and drops
+// tabs and newlines, so `/\evil.com` or `/<tab>/evil.com` would also open evil.com: a relative path with
+// any of these characters is rejected.
+const isSafeUrl = (url) => {
+  const s = String(url ?? '');
+  return /^https?:\/\//i.test(s) || (/^\/(?!\/)/.test(s) && !/[\\\t\n\r]/.test(s));
+};
+
+// An entity Home Assistant has no value for: drawn grey (state unknown), not red (off / down).
+const isUnavailable = (st) => st?.state === 'unavailable' || st?.state === 'unknown';
+
+// A config number (port overlay position), or its default when the YAML value is not a number.
+const num = (v, def) => (Number.isFinite(Number(v)) && v !== '' && v !== null ? Number(v) : def);
 
 const formatBytes = (v) => {
   if (!Number.isFinite(v)) return '—';
@@ -409,6 +433,9 @@ function configWarnings(c) {
   if (count > 52) out.push(`ports is ${count}, above the 52 the editor allows`);
   const m = !c.image && MODELS[c.model];
   if (m && count > m.ports) out.push(`model ${c.model} draws ${m.ports} ports; ports ${m.ports + 1} to ${count} are not shown`);
+  for (const k of ['port_start', 'port_step', 'port_bottom']) {
+    if (c[k] != null && num(c[k], null) === null) out.push(`${k} is not a number: the default ${DEFAULTS[k]} is used`);
+  }
   return out;
 }
 
@@ -500,12 +527,13 @@ class HaSwitchCard extends HTMLElement {
     const c = this._config;
     const st = this._state(c.status_entity);
     if (st) {
+      if (isUnavailable(st)) return COLORS.grey;
       if (statusIs(st.state, c, 'online_state')) return COLORS.green;
       if (statusIs(st.state, c, 'idle_state')) return COLORS.orange;
       return COLORS.red;
     }
     const con = this._state(c.connectivity_entity);
-    if (con) return con.state === 'on' ? COLORS.green : COLORS.red;
+    if (con) return isUnavailable(con) ? COLORS.grey : con.state === 'on' ? COLORS.green : COLORS.red;
     return COLORS.grey;
   }
 
@@ -516,9 +544,13 @@ class HaSwitchCard extends HTMLElement {
 
   _formatTraffic(st) {
     if (!st) return '—';
+    const v = parseFloat(st.state);
+    // `unavailable` / `unknown` (which keep their unit attribute) read as Home Assistant shows them, not "unavailable MB".
+    if (!Number.isFinite(v)) return this._formatState(st);
     const unit = st.attributes?.unit_of_measurement;
-    if (unit && !['B', 'bytes', 'octets', 'o'].includes(unit)) return `${st.state} ${unit}`;
-    return formatBytes(parseFloat(st.state));
+    // Other units (kB/s, Mbit/s…): rounded and localized by Home Assistant, as in its own UI.
+    if (unit && !['B', 'bytes', 'octets', 'o'].includes(unit)) return this._hass.formatEntityState ? this._hass.formatEntityState(st) : `${st.state} ${unit}`;
+    return formatBytes(v);
   }
 
   _moreInfo(entityId) {
@@ -550,11 +582,12 @@ class HaSwitchCard extends HTMLElement {
       if (id === headerEntity) k += `\u0000${st?.attributes?.friendly_name ?? ''}`;
       return k;
     };
-    const key = getLang(this._hass) + this._configKey + this._watchedIds.map(entityKey).join('|');
+    const lang = getLang(this._hass, c);
+    const key = lang + this._configKey + this._watchedIds.map(entityKey).join('|');
     if (key === this._key) return;
     this._key = key;
 
-    const t = I18N[getLang(this._hass)];
+    const t = I18N[lang];
     const statusColor = this._statusColor();
     const sw = this._state(c.switch_entity);
 
@@ -563,14 +596,17 @@ class HaSwitchCard extends HTMLElement {
     const con = this._state(c.connectivity_entity);
     if (c.connectivity_entity) {
       const on = con?.state === 'on';
-      chips.push(this._chip(c.connectivity_entity, on ? 'mdi:network-outline' : 'mdi:network-off-outline', on ? COLORS.green : COLORS.red, this._formatState(con)));
+      // Unreachable (unavailable / unknown) is grey with a question mark, not the red "network off" of a real outage.
+      const unknown = !con || isUnavailable(con);
+      const icon = unknown ? 'mdi:help-network-outline' : on ? 'mdi:network-outline' : 'mdi:network-off-outline';
+      chips.push(this._chip(c.connectivity_entity, icon, unknown ? COLORS.grey : on ? COLORS.green : COLORS.red, this._formatState(con)));
     }
     const st = this._state(c.status_entity);
     if (c.status_entity) {
       // Online / idle read in the card's language, whatever the sensor reports; any other state as Home Assistant shows it.
       const online = statusIs(st?.state, c, 'online_state');
       const idle = !online && statusIs(st?.state, c, 'idle_state');
-      const icon = online ? 'mdi:check-circle' : idle ? 'mdi:minus-circle' : 'mdi:alert-circle';
+      const icon = online ? 'mdi:check-circle' : idle ? 'mdi:minus-circle' : isUnavailable(st) ? 'mdi:help-circle' : 'mdi:alert-circle';
       chips.push(this._chip(c.status_entity, icon, statusColor, online ? t.online : idle ? t.idle : this._formatState(st)));
     }
     if (c.uptime_entity) {
@@ -584,7 +620,8 @@ class HaSwitchCard extends HTMLElement {
       const id = this._portEntity(n);
       const ps = this._state(id);
       const up = ps?.state === String(c.port_on_state);
-      const color = !ps ? COLORS.grey : up ? COLORS.green : COLORS.red;
+      // Missing, unavailable or unknown: grey, so a dead SNMP poll does not show every port as down.
+      const color = !ps || isUnavailable(ps) ? COLORS.grey : up ? COLORS.green : COLORS.red;
       portInfo.push({ n, id, colors: [color, shade(color)] });
     }
     const urlAttr = c.url ? `data-url="${esc(c.url)}" role="link" tabindex="0" aria-label="${esc(t.open_admin)}"` : '';
@@ -592,11 +629,11 @@ class HaSwitchCard extends HTMLElement {
     if (c.image) {
       const ports = portInfo.map(
         ({ n, id, colors }) =>
-          `<div class="port" style="left:${Number(c.port_start) + (n - 1) * Number(c.port_step)}%" data-entity="${esc(id)}" role="button" tabindex="0" title="${t.port} ${n}">${portSvg(...colors)}</div>`
+          `<div class="port" style="left:${num(c.port_start, DEFAULTS.port_start) + (n - 1) * num(c.port_step, DEFAULTS.port_step)}%" data-entity="${esc(id)}" role="button" tabindex="0" title="${t.port} ${n}">${portSvg(...colors)}</div>`
       );
       device = `<div class="device img" ${urlAttr}>
            <img src="${esc(c.image)}" alt="">
-           <div class="ports abs" style="bottom:${Number(c.port_bottom)}%">${ports.join('')}</div>
+           <div class="ports abs" style="bottom:${num(c.port_bottom, DEFAULTS.port_bottom)}%">${ports.join('')}</div>
          </div>`;
     } else if (MODELS[c.model]) {
       const m = MODELS[c.model];
@@ -646,12 +683,15 @@ class HaSwitchCard extends HTMLElement {
       toggle.disabled = sw.state === 'unavailable' || sw.state === 'unknown';
       toggle.addEventListener('change', (ev) => {
         const [domain] = c.switch_entity.split('.');
-        // On failure the toggle would stay visually flipped until the next state change:
-        // drop the render key and redraw from the real state.
-        Promise.resolve(this._hass.callService(domain, ev.target.checked ? 'turn_on' : 'turn_off', { entity_id: c.switch_entity })).catch(() => {
-          this._key = '';
-          this._render();
-        });
+        // When the call fails, or succeeds but the entity keeps its state (a switch that does not answer),
+        // the render key does not change and the toggle would stay visually flipped: once the call settles,
+        // drop the key and redraw from the real state.
+        Promise.resolve(this._hass.callService(domain, ev.target.checked ? 'turn_on' : 'turn_off', { entity_id: c.switch_entity }))
+          .catch(() => {})
+          .then(() => {
+            this._key = '';
+            this._render();
+          });
       });
     }
   }
@@ -736,10 +776,10 @@ class HaSwitchCardEditor extends HTMLElement {
   }
 
   set hass(hass) {
-    const prevLang = this._hass ? getLang(this._hass) : null;
+    const prevLang = this._hass ? getLang(this._hass, this._config) : null;
     this._hass = hass;
     // Only a language change needs new labels: otherwise hand the new hass to the form and keep it as is.
-    if (this._form && prevLang === getLang(hass)) {
+    if (this._form && prevLang === getLang(hass, this._config)) {
       this._form.hass = hass;
       return;
     }
@@ -817,6 +857,21 @@ class HaSwitchCardEditor extends HTMLElement {
             ],
           },
           { name: 'url', selector: { text: { type: 'url' } } },
+          {
+            name: 'language',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: [
+                  { value: '', label: t.lang_auto },
+                  { value: 'en', label: 'English' },
+                  { value: 'fr', label: 'Français' },
+                  { value: 'de', label: 'Deutsch' },
+                  { value: 'es', label: 'Español' },
+                ],
+              },
+            },
+          },
         ],
       },
     ];
@@ -824,7 +879,7 @@ class HaSwitchCardEditor extends HTMLElement {
 
   _render() {
     if (!this._hass || !this._config) return;
-    const t = I18N[getLang(this._hass)];
+    const t = I18N[getLang(this._hass, this._config)];
     if (!this._form) {
       this._form = document.createElement('ha-form');
       this._form.addEventListener('value-changed', (ev) => {
@@ -844,7 +899,7 @@ class HaSwitchCardEditor extends HTMLElement {
     this._form.computeLabel = (s) => t.fields[s.name] ?? s.name;
     this._form.computeHelper = (s) => {
       const def = DEFAULTS[s.name] ?? STATUS_DEFAULTS[s.name]?.join(' / ');
-      return def !== undefined ? `${t.default} : ${def}` : undefined;
+      return def !== undefined ? `${t.default}${t.colon}${def}` : undefined;
     };
   }
 }
