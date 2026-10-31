@@ -81,7 +81,8 @@ export async function render(shots, { icons = {}, hass = {}, extra = "" } = {}) 
         const el = document.createElement(type);
         el.setConfig({ type: `custom:${type}`, ...config });
         el.hass = { states: {}, entities: {}, devices: {}, language: "en", locale: { language: "en" },
-                    themes: { darkMode: dark }, callService: async () => {}, callWS: async () => ({}), ...hass };
+                    themes: { darkMode: dark }, callService: async () => {}, callWS: async () => ({}),
+                    ...(window.formatEntityState ? { formatEntityState: window.formatEntityState } : {}), ...hass };
         document.getElementById("root").appendChild(el);
       },
       { type: s.type, config: s.config || {}, hass: { ...hass, ...(s.hass || {}) }, dark: s.theme === "dark" }
@@ -113,8 +114,23 @@ const icons = {
   "arrow-up-bold": "M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z"
 };
 
+// Home Assistant (2024.8+, the card's minimum) translates states through hass.formatEntityState:
+// a connectivity binary_sensor reads "Connected", not the raw "on". Functions do not survive
+// page.evaluate's serialization, so the formatter is defined in the page and picked up by render().
+const formatter = `
+window.formatEntityState = (st) => {
+  const common = { unavailable: "Unavailable", unknown: "Unknown" };
+  if (common[st.state]) return common[st.state];
+  if (st.entity_id.startsWith("binary_sensor.")) {
+    const names = { connectivity: { on: "Connected", off: "Disconnected" } }[st.attributes?.device_class] || { on: "On", off: "Off" };
+    return names[st.state] ?? st.state;
+  }
+  const unit = st.attributes?.unit_of_measurement;
+  return unit ? st.state + " " + unit : st.state;
+};`;
+
 // Stand-in for Home Assistant's <ha-switch> toggle.
-const extra = `
+const extra = formatter + `
 customElements.define("ha-switch", class extends HTMLElement {
   set checked(v) { this._c = v; this._draw(); }
   connectedCallback() { this._draw(); }
@@ -131,7 +147,7 @@ const ports = (up) => Array.from({ length: 8 }, (_, i) => state(`sensor.switch_p
 const states = Object.fromEntries([
   state("switch.office_switch", "on"),
   state("sensor.office_switch_status", "Online"),
-  state("binary_sensor.office_switch_connectivity", "on"),
+  state("binary_sensor.office_switch_connectivity", "on", { device_class: "connectivity" }),
   state("sensor.office_switch_uptime", "109530000"),
   state("sensor.office_switch_in", "184412876800", { unit_of_measurement: "B" }),
   state("sensor.office_switch_out", "39728447488", { unit_of_measurement: "B" }),
