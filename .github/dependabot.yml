@@ -12,5 +12,15 @@ updates:
     schedule:
       interval: monthly
     groups:
-      npm:
+      npm-dev:
+        dependency-type: development
+        patterns: ["*"]
+  # Bumps the hook revisions in .pre-commit-config.yaml. The biome hook's additional_dependencies pin
+  # (@biomejs/biome) is not touched by Dependabot: keep it, biome.json and the Lint workflow in step by hand.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      pre-commit:
         patterns: ["*"]
