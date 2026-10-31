@@ -116,9 +116,10 @@ Tapping any chip, tile or port opens its more-info dialog.
 
 ## Screenshots
 
-Dark theme (the light theme and the GS308T front panel are shown at the top of this README):
-
-![card dark](screenshots/card-dark.png)
+| | Light | Dark |
+|---|---|---|
+| Generic front panel | ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
+| Netgear GS308T | ![GS308T](screenshots/card-gs308t.png) | ![GS308T dark](screenshots/card-gs308t-dark.png) |
 
 ## How it works
 

@@ -154,6 +154,7 @@ await render(
     { file: "card", type: "ha-switch-card", theme: "light", width: 460, config: { ...config, subtitle: "Generic" } },
     { file: "card-dark", type: "ha-switch-card", theme: "dark", width: 460, config: { ...config, subtitle: "Generic" } },
     { file: "card-gs308t", type: "ha-switch-card", theme: "light", width: 460, config: { ...config, model: "gs308t" } },
+    { file: "card-gs308t-dark", type: "ha-switch-card", theme: "dark", width: 460, config: { ...config, model: "gs308t" } },
   ],
   { icons, hass, extra }
 );
